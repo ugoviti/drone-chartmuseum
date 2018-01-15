@@ -38,9 +38,9 @@ CLI Options:
 
 ```bash
    --helm_repo_add <URL>            URL for the helm repository that need to add that if your helm chart have dependency on other repository [$PLUGIN_HELM_REPO_ADD]
-   --helm_repo_name <String>        Give an name of extra helm repository url [$PLUGIN_HELM_REPO_NAME]
+   --helm_repo_name <String>        Give an name of extra helm repository url [$PLUGIN_HELM_REPO_NAME]
    --upload_repo_url <URL>          URL that the helm chart upload endpoint [$PLUGIN_UPLOAD_REPO_URL]
-   --path <String>                  Path that upload endpoint , "api/charts" is default value for ChartMuseum [$PLUGIN_PATH]
+   --path <String>                  Path that upload endpoint , "api/charts" is default value for ChartMuseum [$PLUGIN_PATH]
 ```
 
 **Note**: helm_repo_add option only support singel url, if you have multiple chart that depend from many extra helm repository ,it's not suitable
