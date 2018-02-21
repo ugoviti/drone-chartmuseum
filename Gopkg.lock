@@ -3,47 +3,64 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/buddyspike/graph"
+  name = "code.gitea.io/git"
   packages = ["."]
-  revision = "8a169b4af166c90737b450f0d2fcf89f40a322d5"
+  revision = "3413a6c00a2e83035973370d4249cccc5d3c22d2"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/libgit2/git2go"
+  name = "github.com/BurntSushi/toml"
   packages = ["."]
-  revision = "432a164805a43a5ee0df15f7939dc771fc8d4fbd"
+  revision = "b26d9c308763d68093482582cea63d69be07a0f0"
+  version = "v0.3.0"
 
 [[projects]]
-  name = "github.com/mbtproject/mbt"
+  name = "github.com/Masterminds/semver"
+  packages = ["."]
+  revision = "15d8430ab86497c5c0da827b748823945e1cf1e1"
+  version = "v1.4.0"
+
+[[projects]]
+  name = "github.com/Unknwon/com"
+  packages = ["."]
+  revision = "28b053d5a2923b87ce8c5a08f3af779894a72758"
+  version = "v1"
+
+[[projects]]
+  name = "github.com/ghodss/yaml"
+  packages = ["."]
+  revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
+  version = "v1.0.0"
+
+[[projects]]
+  name = "github.com/gobwas/glob"
   packages = [
-    "dtrace",
-    "e",
-    "lib",
-    "trie"
+    ".",
+    "compiler",
+    "match",
+    "syntax",
+    "syntax/ast",
+    "syntax/lexer",
+    "util/runes",
+    "util/strings"
   ]
-  revision = "3459253e310596cc04234a2cea3e412355725a24"
-  version = "0.14.4"
+  revision = "5ccd90ef52e1e632236f7326478d4faa74f99438"
+  version = "v0.2.3"
 
 [[projects]]
-  name = "github.com/sirupsen/logrus"
-  packages = ["."]
-  revision = "d682213848ed68c0a260ca37d6dd5ace8423f5ba"
-  version = "v1.0.4"
-
-[[projects]]
-  branch = "master"
-  name = "golang.org/x/crypto"
-  packages = ["ssh/terminal"]
-  revision = "432090b8f568c018896cd8a0fb0345872bbac6ce"
-
-[[projects]]
-  branch = "master"
-  name = "golang.org/x/sys"
+  name = "github.com/golang/protobuf"
   packages = [
-    "unix",
-    "windows"
+    "proto",
+    "ptypes/any",
+    "ptypes/timestamp"
   ]
-  revision = "37707fdb30a5b38865cfb95e5aab41707daec7fd"
+  revision = "925541529c1fa6821df4e44ce2723319eb2be768"
+  version = "v1.0.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mcuadros/go-version"
+  packages = ["."]
+  revision = "88e56e02bea1c203c99222c365fa52a69996ccac"
 
 [[projects]]
   branch = "v2"
@@ -51,9 +68,28 @@
   packages = ["."]
   revision = "d670f9405373e636a5a2765eea47fac0c9bc91a4"
 
+[[projects]]
+  branch = "master"
+  name = "k8s.io/apimachinery"
+  packages = ["pkg/version"]
+  revision = "cced8e64b6ca92a8b6afcbfea3353ca016694a45"
+
+[[projects]]
+  name = "k8s.io/helm"
+  packages = [
+    "pkg/chartutil",
+    "pkg/ignore",
+    "pkg/proto/hapi/chart",
+    "pkg/proto/hapi/version",
+    "pkg/sympath",
+    "pkg/version"
+  ]
+  revision = "6af75a8fd72e2aa18a2b278cfe5c7a1c5feca7f2"
+  version = "v2.8.1"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7898c6ed3563793f7d88db448d75fa79a3d9acd40e2e1bfe4649f32a6cd760e6"
+  inputs-digest = "edecb1ac22cb1c4eee28fd13b0266cdd866bb3163dd00fa4d3593a9406109152"
   solver-name = "gps-cdcl"
   solver-version = 1

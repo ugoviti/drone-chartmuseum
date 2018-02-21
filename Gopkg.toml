@@ -28,7 +28,3 @@
 [prune]
   go-tests = true
   unused-packages = true
-
-[[constraint]]
-  name = "github.com/mbtproject/mbt"
-  version = "0.14.4"
