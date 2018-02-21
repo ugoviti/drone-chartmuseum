@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"log"
 
-	"code.gitea.io/git"
 	"k8s.io/helm/pkg/chartutil"
+
+	"code.gitea.io/git"
 )
 
 func getDiff(repoPath, previousCommitID, commitID string) {
@@ -30,6 +31,9 @@ func getDiff(repoPath, previousCommitID, commitID string) {
 }
 
 func saveChart(chartPath string, dstPath string) {
+	if ok, err := chartutil.IsChartDir(chartPath); ok != true {
+		log.Fatal(err)
+	}
 	c, _ := chartutil.LoadDir(chartPath)
 	chartutil.Save(c, dstPath)
 }
