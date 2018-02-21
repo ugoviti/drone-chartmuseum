@@ -16,7 +16,6 @@ In this case, we are using ChartMuseum for our centralised charts repository.
 
 You can read [here](https://github.com/kubernetes-helm/chartmuseum) for more details about ChartMuseum
 
-
 ## Usage
 
 Drone Usage:
@@ -54,8 +53,7 @@ docker run --rm \
   quay.io/honestbee/chartmuseum:v1
 ```
 
-## To Do:
+## To Do
 
 - Make it to support multiple extra helm repository url that if helm chart have dependency from many different repository
-  
 - Maybe rewrite by python or golang to support more complex behavior
