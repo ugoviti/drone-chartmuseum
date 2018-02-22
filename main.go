@@ -83,16 +83,21 @@ func allMode(c *cli.Context) error {
 }
 
 func diffMode(c *cli.Context) error {
-	repoPath := c.String("repo-url")
+	repoURL := c.String("repo-url")
+	chartDir := c.String("chart-dir")
 	previousCommitID := c.String("previous-commit")
 	commitID := c.String("current-commit")
 	saveDir := c.String("save-dir")
-	files := getDiffFiles(repoPath, previousCommitID, commitID)
+	files := getDiffFiles(chartDir, previousCommitID, commitID)
 
 	files = getUniqueParentFolders(filterExtFiles(files))
+	var resultList []string
 	for _, file := range files {
-		saveChartToPackage(file, saveDir)
+		resultList = append(resultList, saveChartToPackage(file, saveDir))
 	}
+	fmt.Println(resultList)
+	uploadToServer(resultList, repoURL)
+	fmt.Println("how about this")
 	return nil
 }
 

@@ -43,7 +43,11 @@ func getUnique(input []string) []string {
 func getUniqueParentFolders(files []string) []string {
 	var resultSlice []string
 	for _, file := range files {
-		resultSlice = append(resultSlice, strings.Split(file, "/")[0])
+		dir := strings.Split(file, "/")[0]
+		if info, _ := os.Stat(dir); info.IsDir() {
+			resultSlice = append(resultSlice, dir)
+		}
+
 	}
 	return getUnique(resultSlice)
 }
@@ -80,33 +84,38 @@ func getDiffFiles(repoPath, previousCommitID, commitID string) []string {
 	return files
 }
 
-func saveChartToPackage(chartPath string, dstPath string) {
+func saveChartToPackage(chartPath string, dstPath string) string {
 	if _, err := os.Stat(dstPath); os.IsNotExist(err) {
 		os.Mkdir(dstPath, os.ModePerm)
 	}
 
-	if ok, _ := chartutil.IsChartDir(chartPath); ok == true {
-		c, _ := chartutil.LoadDir(chartPath)
-		message, err := chartutil.Save(c, dstPath)
-		fmt.Println(message)
+	if ok, _ := chartutil.IsChartDir(chartPath); ok != true {
+		log.Println("chart is not valid!")
+	}
+
+	c, _ := chartutil.LoadDir(chartPath)
+	message, err := chartutil.Save(c, dstPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return message
+}
+
+func uploadToServer(filePaths []string, serverEndpoint string) {
+	for _, filePath := range filePaths {
+		fmt.Printf("Uploading %v ...", filePath)
+		file, err := os.Open(filePath)
 		if err != nil {
 			log.Fatal(err)
 		}
+		defer file.Close()
+		resp, err := http.Post(serverEndpoint+"/api/charts", "application/octet-stream", file)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer resp.Body.Close()
+		message, _ := ioutil.ReadAll(resp.Body)
+		fmt.Printf(string(message))
 	}
 
-}
-
-func uploadToServer(filePath string, serverEndpoint string) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-	resp, err := http.Post(serverEndpoint, "application/octet-stream", file)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-	message, _ := ioutil.ReadAll(resp.Body)
-	fmt.Printf(string(message))
 }
