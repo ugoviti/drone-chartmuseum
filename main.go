@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 
@@ -35,7 +36,7 @@ func initApp() *cli.App {
 		},
 		cli.StringFlag{
 			Name:   "chart-dir",
-			Value:  "",
+			Value:  "./",
 			Usage:  "chart directory (required if mode is diff or all)",
 			EnvVar: "PLUGIN_CHART_DIR",
 		},
@@ -91,6 +92,21 @@ func defaultAction(c *cli.Context) error {
 }
 
 func allMode(c *cli.Context) error {
+	conf := initAction(c)
+	dirs, err := ioutil.ReadDir(conf.ChartDir)
+	var resultList []string
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, dir := range dirs {
+		chart, err := saveChartToPackage(dir.Name(), conf.SaveDir)
+		if err == nil {
+			resultList = append(resultList, chart)
+		}
+	}
+
+	uploadToServer(resultList, conf.RepoURL)
 	return nil
 }
 
@@ -102,7 +118,10 @@ func diffMode(c *cli.Context) error {
 	files = getUniqueParentFolders(filterExtFiles(files))
 	var resultList []string
 	for _, file := range files {
-		resultList = append(resultList, saveChartToPackage(file, conf.SaveDir))
+		chart, err := saveChartToPackage(file, conf.SaveDir)
+		if err == nil {
+			resultList = append(resultList, chart)
+		}
 	}
 	uploadToServer(resultList, conf.RepoURL)
 	return nil

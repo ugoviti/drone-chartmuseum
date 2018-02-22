@@ -26,6 +26,17 @@ type config struct {
 	CurrentCommitID  string
 }
 
+// http://dabase.com/e/15006/
+func deleteEmpty(s []string) []string {
+	var r []string
+	for _, str := range s {
+		if str != "" {
+			r = append(r, str)
+		}
+	}
+	return r
+}
+
 func getUnique(input []string) []string {
 	u := make([]string, 0, len(input))
 	m := make(map[string]bool)
@@ -40,11 +51,16 @@ func getUnique(input []string) []string {
 	return u
 }
 
+func isDir(filePath string) bool {
+	info, _ := os.Stat(filePath)
+	return info.IsDir()
+}
+
 func getUniqueParentFolders(files []string) []string {
 	var resultSlice []string
 	for _, file := range files {
 		dir := strings.Split(file, "/")[0]
-		if info, _ := os.Stat(dir); info.IsDir() {
+		if isDir(dir) {
 			resultSlice = append(resultSlice, dir)
 		}
 
@@ -84,26 +100,29 @@ func getDiffFiles(repoPath, previousCommitID, commitID string) []string {
 	return files
 }
 
-func saveChartToPackage(chartPath string, dstPath string) string {
+func saveChartToPackage(chartPath string, dstPath string) (string, error) {
+	var message string
+	var err error
 	if _, err := os.Stat(dstPath); os.IsNotExist(err) {
 		os.Mkdir(dstPath, os.ModePerm)
 	}
 
-	if ok, _ := chartutil.IsChartDir(chartPath); ok != true {
-		log.Println("chart is not valid!")
+	if ok, _ := chartutil.IsChartDir(chartPath); ok == true {
+		c, _ := chartutil.LoadDir(chartPath)
+		message, err = chartutil.Save(c, dstPath)
+		if err != nil {
+			log.Printf("%v : %v", chartPath, err)
+		}
+		fmt.Printf("packaging %v ...\n", message)
 	}
 
-	c, _ := chartutil.LoadDir(chartPath)
-	message, err := chartutil.Save(c, dstPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return message
+	return message, err
 }
 
 func uploadToServer(filePaths []string, serverEndpoint string) {
+	filePaths = deleteEmpty(filePaths)
 	for _, filePath := range filePaths {
-		fmt.Printf("Uploading %v ...", filePath)
+		fmt.Printf("Uploading %v ...\n", filePath)
 		file, err := os.Open(filePath)
 		if err != nil {
 			log.Fatal(err)
@@ -115,7 +134,7 @@ func uploadToServer(filePaths []string, serverEndpoint string) {
 		}
 		defer resp.Body.Close()
 		message, _ := ioutil.ReadAll(resp.Body)
-		fmt.Printf(string(message))
+		fmt.Printf("%v \n", string(message))
 	}
 
 }
