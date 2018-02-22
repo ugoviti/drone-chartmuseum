@@ -63,6 +63,12 @@
   revision = "88e56e02bea1c203c99222c365fa52a69996ccac"
 
 [[projects]]
+  name = "github.com/urfave/cli"
+  packages = ["."]
+  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
+  version = "v1.20.0"
+
+[[projects]]
   branch = "v2"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
@@ -90,6 +96,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "edecb1ac22cb1c4eee28fd13b0266cdd866bb3163dd00fa4d3593a9406109152"
+  inputs-digest = "93245600c5a3f6b8b165ebfd774df0574ef78b63f04bf3a18f5febc52684fed4"
   solver-name = "gps-cdcl"
   solver-version = 1
