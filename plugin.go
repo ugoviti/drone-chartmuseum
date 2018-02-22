@@ -19,9 +19,9 @@ var extensions = [...]string{".yaml", ".yml"}
 
 type config struct {
 	RepoURL          string
-	Mode             string
 	ChartPath        string
 	ChartDir         string
+	SaveDir          string
 	PreviousCommitID string
 	CurrentCommitID  string
 }

@@ -63,6 +63,18 @@ func initApp() *cli.App {
 	return app
 }
 
+func initAction(c *cli.Context) config {
+	var conf config
+	conf.RepoURL = c.String("repo-url")
+	conf.ChartDir = c.String("chart-dir")
+	conf.ChartPath = c.String("chart-path")
+	conf.PreviousCommitID = c.String("previous-commit")
+	conf.CurrentCommitID = c.String("current-commit")
+	conf.SaveDir = c.String("save-dir")
+
+	return conf
+}
+
 func defaultAction(c *cli.Context) error {
 	action := c.String("mode")
 	switch action {
@@ -83,21 +95,16 @@ func allMode(c *cli.Context) error {
 }
 
 func diffMode(c *cli.Context) error {
-	repoURL := c.String("repo-url")
-	chartDir := c.String("chart-dir")
-	previousCommitID := c.String("previous-commit")
-	commitID := c.String("current-commit")
-	saveDir := c.String("save-dir")
-	files := getDiffFiles(chartDir, previousCommitID, commitID)
+
+	conf := initAction(c)
+	files := getDiffFiles(conf.ChartDir, conf.PreviousCommitID, conf.CurrentCommitID)
 
 	files = getUniqueParentFolders(filterExtFiles(files))
 	var resultList []string
 	for _, file := range files {
-		resultList = append(resultList, saveChartToPackage(file, saveDir))
+		resultList = append(resultList, saveChartToPackage(file, conf.SaveDir))
 	}
-	fmt.Println(resultList)
-	uploadToServer(resultList, repoURL)
-	fmt.Println("how about this")
+	uploadToServer(resultList, conf.RepoURL)
 	return nil
 }
 
