@@ -116,6 +116,10 @@ func diffMode(c *cli.Context) error {
 	files := getDiffFiles(conf.ChartDir, conf.PreviousCommitID, conf.CurrentCommitID)
 
 	files = getUniqueParentFolders(filterExtFiles(files))
+	if len(files) == 0 {
+		fmt.Print("No chart needs to be updated! Exit ... ")
+		os.Exit(0)
+	}
 	var resultList []string
 	for _, file := range files {
 		chart, err := saveChartToPackage(file, conf.SaveDir)
