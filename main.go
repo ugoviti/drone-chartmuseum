@@ -128,6 +128,14 @@ func diffMode(c *cli.Context) error {
 }
 
 func singleMode(c *cli.Context) error {
+	conf := initAction(c)
+
+	var resultList []string
+	chart, err := saveChartToPackage(conf.ChartPath, conf.SaveDir)
+	if err == nil {
+		resultList = append(resultList, chart)
+	}
+	uploadToServer(resultList, conf.RepoURL)
 	return nil
 }
 
