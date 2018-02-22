@@ -27,7 +27,7 @@ In this mode, the plugin will retrieve the changed files between `previous_commi
 ```YAML
 pipeline:
   chartmuseum-diff:
-    image: quay.io/honestbee/chartmuseum:v1
+    image: quay.io/honestbee/drone-chartmuseum
     repo_url: http://helm-charts.example.com
     mode: diff
     previous_commit: ${DRONE_PREV_COMMIT_SHA}
@@ -44,7 +44,7 @@ All helm charts under `chart_dir` would be packaged and upload to server.
 ```YAML
 pipeline:
   chartmuseum-diff:
-    image: quay.io/honestbee/chartmuseum:v1
+    image: quay.io/honestbee/drone-chartmuseum
     repo_url: http://helm-charts.example.com
     mode: all
     when:
@@ -59,7 +59,7 @@ Only specific chart defined by `chart_path` would be taken care of.
 ```YAML
 pipeline:
   chartmuseum-diff:
-    image: quay.io/honestbee/chartmuseum:v1
+    image: quay.io/honestbee/drone-chartmuseum
     repo_url: http://helm-charts.example.com
     mode: single
     chart_path: nginx
@@ -101,7 +101,7 @@ docker run --rm \
   -e PLUGIN_MODE="diff" \
   -e PLUGIN_PREVIOUS_COMMIT="<commit-sha>" \
   -e PLUGIN_CURRENT_COMMIT="<commit-sha>" \
-  quay.io/honestbee/chartmuseum:v1
+  quay.io/honestbee/drone-chartmuseum
 ```
 
 ## To Do
