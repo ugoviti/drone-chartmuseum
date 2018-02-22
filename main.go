@@ -16,22 +16,6 @@ func initApp() *cli.App {
 
 	mainFlag := []cli.Flag{
 		cli.StringFlag{
-			Name:   "aws-access-key",
-			Usage:  "AWS Access Key `AWS_ACCESS_KEY`",
-			EnvVar: "PLUGIN_ACCESS_KEY,AWS_ACCESS_KEY_ID,AWS_ACCESS_KEY",
-		},
-		cli.StringFlag{
-			Name:   "aws-secret-key",
-			Usage:  "AWS Secret Key `AWS_SECRET_KEY`",
-			EnvVar: "PLUGIN_SECRET_KEY,AWS_SECRET_ACCESS_KEY,AWS_SECRET_KEY",
-		},
-		cli.StringFlag{
-			Name:   "aws-region",
-			Value:  "ap-southeast-1",
-			Usage:  "AWS Region `AWS_REGION`",
-			EnvVar: "PLUGIN_REGION, AWS_REGION",
-		},
-		cli.StringFlag{
 			Name:   "repo-url",
 			Value:  "",
 			Usage:  "chartmuseum server endpoint",
@@ -45,24 +29,30 @@ func initApp() *cli.App {
 		},
 		cli.StringFlag{
 			Name:   "chart-path",
-			Usage:  "chart path (required if `mode` is `single`)",
+			Usage:  "chart path (required if mode is single)",
 			Value:  "",
 			EnvVar: "PLUGIN_CHART_PATH",
 		},
 		cli.StringFlag{
 			Name:   "chart-dir",
 			Value:  "",
-			Usage:  "chart directory (required if `mode` is `diff` or `all`)",
+			Usage:  "chart directory (required if mode is diff or all)",
 			EnvVar: "PLUGIN_CHART_DIR",
 		},
 		cli.StringFlag{
+			Name:   "save-dir",
+			Value:  "uploads/",
+			Usage:  "directory to save chart packages",
+			EnvVar: "PLUGIN_SAVE_DIR",
+		},
+		cli.StringFlag{
 			Name:   "previous-commit",
-			Usage:  "previous commit id (required if `mode` is `diff`)",
+			Usage:  "previous commit id (`COMMIT_SHA`, required if mode is diff)",
 			EnvVar: "PLUGIN_PREVIOUS_COMMIT",
 		},
 		cli.StringFlag{
 			Name:   "current-commit",
-			Usage:  "current commit id (required if `mode` is `diff`)",
+			Usage:  "current commit id (`COMMIT_SHA`, required if mode is diff)",
 			EnvVar: "PLUGIN_CURRENT_COMMIT",
 		},
 	}
@@ -93,6 +83,16 @@ func allMode(c *cli.Context) error {
 }
 
 func diffMode(c *cli.Context) error {
+	repoPath := c.String("repo-url")
+	previousCommitID := c.String("previous-commit")
+	commitID := c.String("current-commit")
+	saveDir := c.String("save-dir")
+	files := getDiffFiles(repoPath, previousCommitID, commitID)
+
+	files = getUniqueParentFolders(filterExtFiles(files))
+	for _, file := range files {
+		saveChartToPackage(file, saveDir)
+	}
 	return nil
 }
 
