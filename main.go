@@ -117,7 +117,7 @@ func diffMode(c *cli.Context) error {
 
 	files = getUniqueParentFolders(filterExtFiles(files))
 	if len(files) == 0 {
-		fmt.Print("No chart needs to be updated! Exit ... ")
+		fmt.Print("No chart needs to be updated! Exit ... \n")
 		os.Exit(0)
 	}
 	var resultList []string

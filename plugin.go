@@ -82,7 +82,7 @@ func filterExtFiles(files []string) []string {
 }
 
 func getDiffFiles(repoPath, previousCommitID, commitID string) []string {
-	fmt.Printf("Getting diff between %v and %v ...", previousCommitID, commitID)
+	fmt.Printf("Getting diff between %v and %v ...\n", previousCommitID, commitID)
 	repository, err := git.OpenRepository(repoPath)
 	if err != nil {
 		log.Fatal(err)
