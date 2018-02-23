@@ -78,48 +78,29 @@ func initAction(c *cli.Context) config {
 
 func defaultAction(c *cli.Context) error {
 	action := c.String("mode")
+	conf := initAction(c)
 	switch action {
 	case "all":
-		allMode(c)
+		allMode(c, conf)
 	case "diff":
-		diffMode(c)
+		diffMode(c, conf)
 	case "single":
-		singleMode(c)
+		singleMode(c, conf)
 	default:
 		log.Fatal("mode not valid!")
 	}
 	return nil
 }
 
-func allMode(c *cli.Context) error {
-	conf := initAction(c)
-	dirs, err := ioutil.ReadDir(conf.ChartDir)
+func extractDirs(fileInfos []os.FileInfo) []string {
 	var resultList []string
-	if err != nil {
-		log.Fatal(err)
+	for _, fileInfo := range fileInfos {
+		resultList = append(resultList, fileInfo.Name())
 	}
-
-	for _, dir := range dirs {
-		chart, err := saveChartToPackage(dir.Name(), conf.SaveDir)
-		if err == nil {
-			resultList = append(resultList, chart)
-		}
-	}
-
-	uploadToServer(resultList, conf.RepoURL)
-	return nil
+	return resultList
 }
 
-func diffMode(c *cli.Context) error {
-
-	conf := initAction(c)
-	files := getDiffFiles(conf.ChartDir, conf.PreviousCommitID, conf.CurrentCommitID)
-
-	files = getUniqueParentFolders(filterExtFiles(files))
-	if len(files) == 0 {
-		fmt.Print("No chart needs to be updated! Exit ... \n")
-		os.Exit(0)
-	}
+func executeAction(files []string, conf config) {
 	var resultList []string
 	for _, file := range files {
 		chart, err := saveChartToPackage(file, conf.SaveDir)
@@ -128,18 +109,31 @@ func diffMode(c *cli.Context) error {
 		}
 	}
 	uploadToServer(resultList, conf.RepoURL)
+}
+
+func allMode(c *cli.Context, conf config) error {
+	dirs, err := ioutil.ReadDir(conf.ChartDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	executeAction(extractDirs(dirs), conf)
 	return nil
 }
 
-func singleMode(c *cli.Context) error {
-	conf := initAction(c)
-
-	var resultList []string
-	chart, err := saveChartToPackage(conf.ChartPath, conf.SaveDir)
-	if err == nil {
-		resultList = append(resultList, chart)
+func diffMode(c *cli.Context, conf config) error {
+	files := getDiffFiles(conf.ChartDir, conf.PreviousCommitID, conf.CurrentCommitID)
+	files = getUniqueParentFolders(filterExtFiles(files))
+	if len(files) == 0 {
+		fmt.Print("No chart needs to be updated! Exit ... \n")
+		os.Exit(0)
 	}
-	uploadToServer(resultList, conf.RepoURL)
+	executeAction(files, conf)
+	return nil
+}
+
+func singleMode(c *cli.Context, conf config) error {
+	executeAction([]string{conf.ChartPath}, conf)
 	return nil
 }
 
