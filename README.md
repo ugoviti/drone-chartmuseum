@@ -43,7 +43,7 @@ All helm charts under `chart_dir` would be packaged and upload to server.
 
 ```YAML
 pipeline:
-  chartmuseum-diff:
+  chartmuseum-all:
     image: quay.io/honestbee/drone-chartmuseum
     repo_url: http://helm-charts.example.com
     mode: all
@@ -58,7 +58,7 @@ Only specific chart defined by `chart_path` would be taken care of.
 
 ```YAML
 pipeline:
-  chartmuseum-diff:
+  chartmuseum-single:
     image: quay.io/honestbee/drone-chartmuseum
     repo_url: http://helm-charts.example.com
     mode: single

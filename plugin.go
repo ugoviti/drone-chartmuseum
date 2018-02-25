@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"k8s.io/helm/pkg/chartutil"
@@ -18,12 +19,12 @@ import (
 var extensions = [...]string{".yaml", ".yml"}
 
 type config struct {
-	RepoURL          string
-	ChartPath        string
-	ChartDir         string
-	SaveDir          string
-	PreviousCommitID string
-	CurrentCommitID  string
+	RepoURL          string `json:"repo_url,omitempty"`
+	ChartPath        string `json:"chart_path,omitempty"`
+	ChartDir         string `json:"chart_dir,omitempty"`
+	SaveDir          string `json:"save_dir,omitempty"`
+	PreviousCommitID string `json:"previous_commit_id,omitempty"`
+	CurrentCommitID  string `json:"current_commit_id,omitempty"`
 }
 
 // http://dabase.com/e/15006/
@@ -35,6 +36,13 @@ func deleteEmpty(s []string) []string {
 		}
 	}
 	return r
+}
+
+// https://godoc.org/github.com/google/go-cmp/cmp#example-Option--SortedSlice
+func sortStringSlice(in []string) []string {
+	out := append([]string(nil), in...) // Copy input to avoid mutating it
+	sort.Strings(out)
+	return out
 }
 
 func getUnique(input []string) []string {
@@ -52,7 +60,11 @@ func getUnique(input []string) []string {
 }
 
 func isDir(filePath string) bool {
-	info, _ := os.Stat(filePath)
+	info, err := os.Stat(filePath)
+	if err != nil {
+		log.Print(err)
+		return false
+	}
 	return info.IsDir()
 }
 
