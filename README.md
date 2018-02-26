@@ -29,7 +29,6 @@ pipeline:
   chartmuseum-diff:
     image: quay.io/honestbee/drone-chartmuseum
     repo_url: http://helm-charts.example.com
-    mode: diff
     previous_commit: ${DRONE_PREV_COMMIT_SHA}
     current_commit: ${DRONE_COMMIT_SHA}
     when:
@@ -46,7 +45,6 @@ pipeline:
   chartmuseum-all:
     image: quay.io/honestbee/drone-chartmuseum
     repo_url: http://helm-charts.example.com
-    mode: all
     when:
       branch: [master]
 
@@ -61,7 +59,6 @@ pipeline:
   chartmuseum-single:
     image: quay.io/honestbee/drone-chartmuseum
     repo_url: http://helm-charts.example.com
-    mode: single
     chart_path: nginx
     when:
       branch: [master]
@@ -84,13 +81,12 @@ COMMANDS:
      help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --repo-url value              chartmuseum server endpoint [$PLUGIN_REPO_URL]
-   --mode value                  which mode to run (all|diff|single) [$PLUGIN_MODE]
-   --chart-path value            chart path (required if mode is single) [$PLUGIN_CHART_PATH]
-   --chart-dir value             chart directory (required if mode is diff or all) (default: "./") [$PLUGIN_CHART_DIR]
-   --save-dir value              directory to save chart packages (default: "uploads/") [$PLUGIN_SAVE_DIR]
-   --previous-commit COMMIT_SHA  previous commit id (COMMIT_SHA, required if mode is diff) [$PLUGIN_PREVIOUS_COMMIT]
-   --current-commit COMMIT_SHA   current commit id (COMMIT_SHA, required if mode is diff) [$PLUGIN_CURRENT_COMMIT]
+   --repo-url value              chartmuseum server endpoint [$PLUGIN_REPO_URL, $ REPO_URL]
+   --chart-path value            chart path (required if mode is single) [$PLUGIN_CHART_PATH, $ CHART_PATH]
+   --chart-dir value             chart directory (required if mode is diff or all) (default: "./") [$PLUGIN_CHART_DIR, $ CHART_DIR]
+   --save-dir value              directory to save chart packages (default: "uploads/") [$PLUGIN_SAVE_DIR, $ SAVE_DIR]
+   --previous-commit COMMIT_SHA  previous commit id (COMMIT_SHA, required if mode is diff) [$PLUGIN_PREVIOUS_COMMIT, $ PREVIOUS_COMMIT]
+   --current-commit COMMIT_SHA   current commit id (COMMIT_SHA, required if mode is diff) [$PLUGIN_CURRENT_COMMIT, $ CURRENT_COMMIT]
    --help, -h                    show help
    --version, -v                 print the version
 ```
@@ -98,7 +94,6 @@ GLOBAL OPTIONS:
 ```bash
 docker run --rm \
   -e PLUGIN_REPO_URL="http://helm-charts.example.com" \
-  -e PLUGIN_MODE="diff" \
   -e PLUGIN_PREVIOUS_COMMIT="<commit-sha>" \
   -e PLUGIN_CURRENT_COMMIT="<commit-sha>" \
   quay.io/honestbee/drone-chartmuseum
