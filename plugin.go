@@ -1,13 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 
 	"github.com/honestbee/drone-chartmuseum/pkg/util"
-	"github.com/urfave/cli"
 )
 
 type (
@@ -28,47 +25,31 @@ type (
 	}
 )
 
-func extractDirs(fileInfos []os.FileInfo) []string {
-	var resultList []string
-	for _, fileInfo := range fileInfos {
-		resultList = append(resultList, fileInfo.Name())
-	}
-	return resultList
-}
-
-func executeAction(files []string, conf Config) {
+func (p *Plugin) defaultExec(files []string) {
 	var resultList []string
 	for _, file := range files {
-		chart, err := util.SaveChartToPackage(file, conf.SaveDir)
+		chart, err := util.SaveChartToPackage(file, p.Config.SaveDir)
 		if err == nil {
 			resultList = append(resultList, chart)
 		}
 	}
-	util.UploadToServer(resultList, conf.RepoURL)
+	util.UploadToServer(resultList, p.Config.RepoURL)
 }
 
-func allMode(c *cli.Context, conf Config) error {
-	dirs, err := ioutil.ReadDir(conf.ChartDir)
-	if err != nil {
-		log.Fatal(err)
+func (p *Plugin) exec() error {
+	var files []string
+	if p.Config.ChartPath != "" {
+		files = []string{p.Config.ChartPath}
+	} else if p.Config.PreviousCommitID != "" && p.Config.CurrentCommitID != "" {
+		files = util.GetParentFolders(util.FilterExtFiles(util.GetDiffFiles(p.Config.ChartPath, p.Config.PreviousCommitID, p.Config.CurrentCommitID)))
+	} else {
+		dirs, err := ioutil.ReadDir(p.Config.ChartDir)
+		if err != nil {
+			log.Fatal(err)
+		}
+		files = util.ExtractDirs(dirs)
 	}
 
-	executeAction(extractDirs(dirs), conf)
-	return nil
-}
-
-func diffMode(c *cli.Context, conf Config) error {
-	files := util.GetDiffFiles(conf.ChartDir, conf.PreviousCommitID, conf.CurrentCommitID)
-	files = util.GetParentFolders(util.FilterExtFiles(files))
-	if len(files) == 0 {
-		fmt.Print("No chart needs to be updated! Exit ... \n")
-		os.Exit(0)
-	}
-	executeAction(files, conf)
-	return nil
-}
-
-func singleMode(c *cli.Context, conf Config) error {
-	executeAction([]string{conf.ChartPath}, conf)
+	p.defaultExec(files)
 	return nil
 }

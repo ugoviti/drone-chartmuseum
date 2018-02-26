@@ -64,77 +64,23 @@ func initApp() *cli.App {
 	return app
 }
 
-func initAction(c *cli.Context) config {
-	var conf config
-	conf.RepoURL = c.String("repo-url")
-	conf.ChartDir = c.String("chart-dir")
-	conf.ChartPath = c.String("chart-path")
-	conf.PreviousCommitID = c.String("previous-commit")
-	conf.CurrentCommitID = c.String("current-commit")
-	conf.SaveDir = c.String("save-dir")
+func initAction(c *cli.Context) Config {
+	return Config{
+		RepoURL:          c.String("repo-url"),
+		ChartDir:         c.String("chart-dir"),
+		ChartPath:        c.String("chart-path"),
+		PreviousCommitID: c.String("previous-commit"),
+		CurrentCommitID:  c.String("current-commit"),
+		SaveDir:          c.String("save-dir"),
+	}
 
-	return conf
 }
 
 func defaultAction(c *cli.Context) error {
-	action := c.String("mode")
-	conf := initAction(c)
-	switch action {
-	case "all":
-		allMode(c, conf)
-	case "diff":
-		diffMode(c, conf)
-	case "single":
-		singleMode(c, conf)
-	default:
-		log.Fatal("mode not valid!")
+	plugin := Plugin{
+		Config: initAction(c),
 	}
-	return nil
-}
-
-func extractDirs(fileInfos []os.FileInfo) []string {
-	var resultList []string
-	for _, fileInfo := range fileInfos {
-		resultList = append(resultList, fileInfo.Name())
-	}
-	return resultList
-}
-
-func executeAction(files []string, conf config) {
-	var resultList []string
-	for _, file := range files {
-		chart, err := saveChartToPackage(file, conf.SaveDir)
-		if err == nil {
-			resultList = append(resultList, chart)
-		}
-	}
-	uploadToServer(resultList, conf.RepoURL)
-}
-
-func allMode(c *cli.Context, conf config) error {
-	dirs, err := ioutil.ReadDir(conf.ChartDir)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	executeAction(extractDirs(dirs), conf)
-	return nil
-}
-
-func diffMode(c *cli.Context, conf config) error {
-	files := getDiffFiles(conf.ChartDir, conf.PreviousCommitID, conf.CurrentCommitID)
-	files = getUniqueParentFolders(filterExtFiles(files))
-	if len(files) == 0 {
-		fmt.Print("No chart needs to be updated! Exit ... \n")
-		os.Exit(0)
-	}
-	executeAction(files, conf)
-	return nil
-}
-
-func singleMode(c *cli.Context, conf config) error {
-	executeAction([]string{conf.ChartPath}, conf)
-	return nil
+	return plugin.exec()
 }
 
 func main() {
