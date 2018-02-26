@@ -28,6 +28,15 @@ func DeleteEmpty(s []string) []string {
 	return r
 }
 
+// ExtractDirs : Get Dir path from os.info
+func ExtractDirs(fileInfos []os.FileInfo) []string {
+	var resultList []string
+	for _, fileInfo := range fileInfos {
+		resultList = append(resultList, fileInfo.Name())
+	}
+	return resultList
+}
+
 // SortStringSlice : little technique to sort slice to use in unit test. See: https://godoc.org/github.com/google/go-cmp/cmp#example-Option--SortedSlice
 func SortStringSlice(in []string) []string {
 	out := append([]string(nil), in...) // Copy input to avoid mutating it
