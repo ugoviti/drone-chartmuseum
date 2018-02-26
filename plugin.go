@@ -4,150 +4,71 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
-	"path/filepath"
-	"sort"
-	"strings"
 
-	"k8s.io/helm/pkg/chartutil"
-
-	"code.gitea.io/git"
+	"github.com/honestbee/drone-chartmuseum/pkg/util"
+	"github.com/urfave/cli"
 )
 
-// Just for clarification: the [...]T syntax is sugar for [123]T. It creates a fixed size array, but lets the compiler figure out how many elements are in it.
-var extensions = [...]string{".yaml", ".yml"}
+type (
 
-type config struct {
-	RepoURL          string `json:"repo_url,omitempty"`
-	ChartPath        string `json:"chart_path,omitempty"`
-	ChartDir         string `json:"chart_dir,omitempty"`
-	SaveDir          string `json:"save_dir,omitempty"`
-	PreviousCommitID string `json:"previous_commit_id,omitempty"`
-	CurrentCommitID  string `json:"current_commit_id,omitempty"`
-}
-
-// http://dabase.com/e/15006/
-func deleteEmpty(s []string) []string {
-	var r []string
-	for _, str := range s {
-		if str != "" {
-			r = append(r, str)
-		}
-	}
-	return r
-}
-
-// https://godoc.org/github.com/google/go-cmp/cmp#example-Option--SortedSlice
-func sortStringSlice(in []string) []string {
-	out := append([]string(nil), in...) // Copy input to avoid mutating it
-	sort.Strings(out)
-	return out
-}
-
-func getUnique(input []string) []string {
-	u := make([]string, 0, len(input))
-	m := make(map[string]bool)
-
-	for _, val := range input {
-		if _, ok := m[val]; !ok {
-			m[val] = true
-			u = append(u, val)
-		}
+	// Config struct map with drone plugin parameters
+	Config struct {
+		RepoURL          string `json:"repo_url,omitempty"`
+		ChartPath        string `json:"chart_path,omitempty"`
+		ChartDir         string `json:"chart_dir,omitempty"`
+		SaveDir          string `json:"save_dir,omitempty"`
+		PreviousCommitID string `json:"previous_commit_id,omitempty"`
+		CurrentCommitID  string `json:"current_commit_id,omitempty"`
 	}
 
-	return u
-}
-
-func isDir(filePath string) bool {
-	info, err := os.Stat(filePath)
-	if err != nil {
-		log.Print(err)
-		return false
+	// Plugin struct
+	Plugin struct {
+		Config Config
 	}
-	return info.IsDir()
+)
+
+func extractDirs(fileInfos []os.FileInfo) []string {
+	var resultList []string
+	for _, fileInfo := range fileInfos {
+		resultList = append(resultList, fileInfo.Name())
+	}
+	return resultList
 }
 
-func getUniqueParentFolders(files []string) []string {
-	var resultSlice []string
+func executeAction(files []string, conf Config) {
+	var resultList []string
 	for _, file := range files {
-		dir := strings.Split(file, "/")[0]
-		if isDir(dir) {
-			resultSlice = append(resultSlice, dir)
-		}
-
-	}
-	return getUnique(resultSlice)
-}
-
-func filterExtFiles(files []string) []string {
-	var resultSlice []string
-	for _, ext := range extensions {
-		for _, file := range files {
-			if filepath.Ext(file) == ext {
-				resultSlice = append(resultSlice, file)
-
-			}
+		chart, err := util.SaveChartToPackage(file, conf.SaveDir)
+		if err == nil {
+			resultList = append(resultList, chart)
 		}
 	}
-	return resultSlice
+	util.UploadToServer(resultList, conf.RepoURL)
 }
 
-func getDiffFiles(repoPath, previousCommitID, commitID string) []string {
-	fmt.Printf("Getting diff between %v and %v ...\n", previousCommitID, commitID)
-	repository, err := git.OpenRepository(repoPath)
+func allMode(c *cli.Context, conf Config) error {
+	dirs, err := ioutil.ReadDir(conf.ChartDir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	commit, err := repository.GetCommit(commitID)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	files, err := commit.GetFilesChangedSinceCommit(previousCommitID)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return files
+	executeAction(extractDirs(dirs), conf)
+	return nil
 }
 
-func saveChartToPackage(chartPath string, dstPath string) (string, error) {
-	var message string
-	var err error
-	if _, err := os.Stat(dstPath); os.IsNotExist(err) {
-		os.Mkdir(dstPath, os.ModePerm)
+func diffMode(c *cli.Context, conf Config) error {
+	files := util.GetDiffFiles(conf.ChartDir, conf.PreviousCommitID, conf.CurrentCommitID)
+	files = util.GetParentFolders(util.FilterExtFiles(files))
+	if len(files) == 0 {
+		fmt.Print("No chart needs to be updated! Exit ... \n")
+		os.Exit(0)
 	}
-
-	if ok, _ := chartutil.IsChartDir(chartPath); ok == true {
-		c, _ := chartutil.LoadDir(chartPath)
-		message, err = chartutil.Save(c, dstPath)
-		if err != nil {
-			log.Printf("%v : %v", chartPath, err)
-		}
-		fmt.Printf("packaging %v ...\n", message)
-	}
-
-	return message, err
+	executeAction(files, conf)
+	return nil
 }
 
-func uploadToServer(filePaths []string, serverEndpoint string) {
-	filePaths = deleteEmpty(filePaths)
-	for _, filePath := range filePaths {
-		fmt.Printf("Uploading %v ...\n", filePath)
-		file, err := os.Open(filePath)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer file.Close()
-		resp, err := http.Post(serverEndpoint+"/api/charts", "application/octet-stream", file)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer resp.Body.Close()
-		message, _ := ioutil.ReadAll(resp.Body)
-		fmt.Printf("%v \n", string(message))
-	}
-
+func singleMode(c *cli.Context, conf Config) error {
+	executeAction([]string{conf.ChartPath}, conf)
+	return nil
 }
