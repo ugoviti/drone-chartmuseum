@@ -57,21 +57,16 @@ func initApp() *cli.App {
 	return app
 }
 
-func initAction(c *cli.Context) Config {
-	return Config{
-		RepoURL:          c.String("repo-url"),
-		ChartDir:         c.String("chart-dir"),
-		ChartPath:        c.String("chart-path"),
-		PreviousCommitID: c.String("previous-commit"),
-		CurrentCommitID:  c.String("current-commit"),
-		SaveDir:          c.String("save-dir"),
-	}
-
-}
-
 func defaultAction(c *cli.Context) error {
 	plugin := Plugin{
-		Config: initAction(c),
+		Config: Config{
+			RepoURL:          c.String("repo-url"),
+			ChartDir:         c.String("chart-dir"),
+			ChartPath:        c.String("chart-path"),
+			PreviousCommitID: c.String("previous-commit"),
+			CurrentCommitID:  c.String("current-commit"),
+			SaveDir:          c.String("save-dir"),
+		},
 	}
 	return plugin.exec()
 }
