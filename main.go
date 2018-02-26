@@ -19,41 +19,35 @@ func initApp() *cli.App {
 			Name:   "repo-url",
 			Value:  "",
 			Usage:  "chartmuseum server endpoint",
-			EnvVar: "PLUGIN_REPO_URL",
-		},
-		cli.StringFlag{
-			Name:   "mode",
-			Value:  "",
-			Usage:  "which mode to run (all|diff|single)",
-			EnvVar: "PLUGIN_MODE",
+			EnvVar: "PLUGIN_REPO_URL, REPO_URL",
 		},
 		cli.StringFlag{
 			Name:   "chart-path",
 			Usage:  "chart path (required if mode is single)",
 			Value:  "",
-			EnvVar: "PLUGIN_CHART_PATH",
+			EnvVar: "PLUGIN_CHART_PATH, CHART_PATH",
 		},
 		cli.StringFlag{
 			Name:   "chart-dir",
 			Value:  "./",
 			Usage:  "chart directory (required if mode is diff or all)",
-			EnvVar: "PLUGIN_CHART_DIR",
+			EnvVar: "PLUGIN_CHART_DIR, CHART_DIR",
 		},
 		cli.StringFlag{
 			Name:   "save-dir",
 			Value:  "uploads/",
 			Usage:  "directory to save chart packages",
-			EnvVar: "PLUGIN_SAVE_DIR",
+			EnvVar: "PLUGIN_SAVE_DIR, SAVE_DIR",
 		},
 		cli.StringFlag{
 			Name:   "previous-commit",
 			Usage:  "previous commit id (`COMMIT_SHA`, required if mode is diff)",
-			EnvVar: "PLUGIN_PREVIOUS_COMMIT",
+			EnvVar: "PLUGIN_PREVIOUS_COMMIT, PREVIOUS_COMMIT",
 		},
 		cli.StringFlag{
 			Name:   "current-commit",
 			Usage:  "current commit id (`COMMIT_SHA`, required if mode is diff)",
-			EnvVar: "PLUGIN_CURRENT_COMMIT",
+			EnvVar: "PLUGIN_CURRENT_COMMIT, CURRENT_COMMIT",
 		},
 	}
 
