@@ -69,7 +69,7 @@ func (p *Plugin) SaveChartToPackage(chartPath string) (message string, err error
 	return message, err
 }
 
-func (p *Plugin) packageAndUpload(files []string) (err error) {
+func (p *Plugin) PackageAndUpload(files []string) (err error) {
 	var resultList []string
 	for _, file := range files {
 		chart, err := p.SaveChartToPackage(file)
