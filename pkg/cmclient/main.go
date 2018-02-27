@@ -15,8 +15,10 @@ import (
 func UploadToServer(filePaths []string, serverEndpoint string) (err error) {
 	if serverEndpoint == "" {
 		err = errors.New("No valid RepoURL was defined")
-		log.Fatal(err)
+		log.Print(err)
+		return err
 	}
+
 	filePaths = util.DeleteEmpty(filePaths)
 	for _, filePath := range filePaths {
 		fmt.Printf("Uploading %v ...\n", filePath)
@@ -36,5 +38,5 @@ func UploadToServer(filePaths []string, serverEndpoint string) (err error) {
 		}
 		fmt.Printf("%v \n", string(message))
 	}
-	return err
+	return nil
 }

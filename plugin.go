@@ -35,20 +35,20 @@ func (p *Plugin) GetDiffFiles() ([]string, error) {
 	fmt.Printf("Getting diff between %v and %v ...\n", p.Config.PreviousCommitID, p.Config.CurrentCommitID)
 	repository, err := git.OpenRepository(p.Config.ChartDir)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	commit, err := repository.GetCommit(p.Config.CurrentCommitID)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	files, err := commit.GetFilesChangedSinceCommit(p.Config.PreviousCommitID)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	return files, err
+	return files, nil
 }
 
 // SaveChartToPackage : save helm chart folder to compressed package
@@ -66,9 +66,10 @@ func (p *Plugin) SaveChartToPackage(chartPath string) (message string, err error
 		fmt.Printf("packaging %v ...\n", message)
 	}
 
-	return message, err
+	return message, nil
 }
 
+// PackageAndUpload : get list of files, create package and upload
 func (p *Plugin) PackageAndUpload(files []string) (err error) {
 	var resultList []string
 	for _, file := range files {
@@ -83,6 +84,7 @@ func (p *Plugin) PackageAndUpload(files []string) (err error) {
 	return err
 }
 
+// exec : main logic
 func (p *Plugin) exec() (err error) {
 	var files []string
 	isDiff := p.Config.PreviousCommitID != "" && p.Config.CurrentCommitID != ""
@@ -114,6 +116,6 @@ func (p *Plugin) exec() (err error) {
 		}
 	}
 
-	err = p.packageAndUpload(files)
+	err = p.PackageAndUpload(files)
 	return err
 }
