@@ -23,14 +23,14 @@ func initApp() *cli.App {
 		},
 		cli.StringFlag{
 			Name:   "chart-path",
-			Usage:  "chart path (required if mode is single)",
+			Usage:  "chart path",
 			Value:  "",
 			EnvVar: "PLUGIN_CHART_PATH, CHART_PATH",
 		},
 		cli.StringFlag{
 			Name:   "chart-dir",
 			Value:  "./",
-			Usage:  "chart directory (required if mode is diff or all)",
+			Usage:  "chart directory",
 			EnvVar: "PLUGIN_CHART_DIR, CHART_DIR",
 		},
 		cli.StringFlag{
@@ -41,12 +41,12 @@ func initApp() *cli.App {
 		},
 		cli.StringFlag{
 			Name:   "previous-commit",
-			Usage:  "previous commit id (`COMMIT_SHA`, required if mode is diff)",
+			Usage:  "previous commit id (`COMMIT_SHA`)",
 			EnvVar: "PLUGIN_PREVIOUS_COMMIT, PREVIOUS_COMMIT",
 		},
 		cli.StringFlag{
 			Name:   "current-commit",
-			Usage:  "current commit id (`COMMIT_SHA`, required if mode is diff)",
+			Usage:  "current commit id (`COMMIT_SHA`)",
 			EnvVar: "PLUGIN_CURRENT_COMMIT, CURRENT_COMMIT",
 		},
 	}

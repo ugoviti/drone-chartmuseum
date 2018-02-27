@@ -1,11 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/honestbee/drone-chartmuseum/pkg/cmclient"
 	"github.com/honestbee/drone-chartmuseum/pkg/util"
+	"k8s.io/helm/pkg/chartutil"
 )
 
 type (
