@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"code.gitea.io/git"
 	"github.com/honestbee/drone-chartmuseum/pkg/cmclient"
 	"github.com/honestbee/drone-chartmuseum/pkg/util"
 	"k8s.io/helm/pkg/chartutil"
@@ -28,6 +29,27 @@ type (
 		Config Config
 	}
 )
+
+// GetDiffFiles : similar to git diff, get the file changes between 2 commits
+func (p *Plugin) GetDiffFiles() []string {
+	fmt.Printf("Getting diff between %v and %v ...\n", p.Config.PreviousCommitID, p.Config.CurrentCommitID)
+	repository, err := git.OpenRepository(p.Config.ChartDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	commit, err := repository.GetCommit(p.Config.CurrentCommitID)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	files, err := commit.GetFilesChangedSinceCommit(p.Config.PreviousCommitID)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return files
+}
 
 // SaveChartToPackage : save helm chart folder to compressed package
 func (p *Plugin) SaveChartToPackage(chartPath string) (string, error) {
@@ -65,7 +87,7 @@ func (p *Plugin) exec() error {
 	if p.Config.ChartPath != "" {
 		files = []string{p.Config.ChartPath}
 	} else if p.Config.PreviousCommitID != "" && p.Config.CurrentCommitID != "" {
-		diffFiles := util.GetDiffFiles(p.Config.ChartPath, p.Config.PreviousCommitID, p.Config.CurrentCommitID)
+		diffFiles := p.GetDiffFiles()
 		files = util.GetParentFolders(util.FilterExtFiles(diffFiles))
 	} else {
 		dirs, err := ioutil.ReadDir(p.Config.ChartDir)

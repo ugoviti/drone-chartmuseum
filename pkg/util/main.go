@@ -1,14 +1,11 @@
 package util
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
-
-	"code.gitea.io/git"
 )
 
 // Extensions : the [...]T syntax is sugar for [123]T. It creates a fixed size array, but lets the compiler figure out how many elements are in it.
@@ -91,25 +88,4 @@ func FilterExtFiles(files []string) []string {
 		}
 	}
 	return resultSlice
-}
-
-// GetDiffFiles : similar to git diff, get the file changes between 2 commits
-func GetDiffFiles(repoPath, previousCommitID, commitID string) []string {
-	fmt.Printf("Getting diff between %v and %v ...\n", previousCommitID, commitID)
-	repository, err := git.OpenRepository(repoPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	commit, err := repository.GetCommit(commitID)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	files, err := commit.GetFilesChangedSinceCommit(previousCommitID)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return files
 }
