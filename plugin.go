@@ -69,7 +69,7 @@ func (p *Plugin) SaveChartToPackage(chartPath string) (message string, err error
 	return message, err
 }
 
-func (p *Plugin) defaultExec(files []string) (err error) {
+func (p *Plugin) packageAndUpload(files []string) (err error) {
 	var resultList []string
 	for _, file := range files {
 		chart, err := p.SaveChartToPackage(file)
@@ -85,22 +85,35 @@ func (p *Plugin) defaultExec(files []string) (err error) {
 
 func (p *Plugin) exec() (err error) {
 	var files []string
-	if p.Config.ChartPath != "" {
-		files = []string{p.Config.ChartPath}
-	} else if p.Config.PreviousCommitID != "" && p.Config.CurrentCommitID != "" {
+	isDiff := p.Config.PreviousCommitID != "" && p.Config.CurrentCommitID != ""
+	isPath := p.Config.ChartPath != ""
+
+	if isDiff {
 		diffFiles, err := p.GetDiffFiles()
 		if err != nil {
 			log.Fatal(err)
 		}
 		files = util.GetParentFolders(util.FilterExtFiles(diffFiles))
-	} else {
-		dirs, err := ioutil.ReadDir(p.Config.ChartDir)
-		if err != nil {
-			log.Fatal(err)
+
+		if isPath {
+			if util.Contains(files, p.Config.ChartPath) {
+				files = []string{p.Config.ChartPath}
+			} else {
+				files = []string{}
+			}
 		}
-		files = util.ExtractDirs(dirs)
+	} else {
+		if isPath {
+			files = []string{p.Config.ChartPath}
+		} else {
+			dirs, err := ioutil.ReadDir(p.Config.ChartDir)
+			if err != nil {
+				log.Fatal(err)
+			}
+			files = util.ExtractDirs(dirs)
+		}
 	}
 
-	err = p.defaultExec(files)
+	err = p.packageAndUpload(files)
 	return err
 }

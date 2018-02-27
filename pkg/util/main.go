@@ -10,6 +10,16 @@ import (
 // Extensions : the [...]T syntax is sugar for [123]T. It creates a fixed size array, but lets the compiler figure out how many elements are in it.
 var Extensions = [...]string{".yaml", ".yml"}
 
+// Contains : check if element exists in string slice
+func Contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
 // DeleteEmpty : to clean empty element from slice. See: http://dabase.com/e/15006/
 func DeleteEmpty(s []string) (r []string) {
 	for _, str := range s {
