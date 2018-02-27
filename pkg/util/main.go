@@ -1,7 +1,6 @@
 package util
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -12,8 +11,7 @@ import (
 var Extensions = [...]string{".yaml", ".yml"}
 
 // DeleteEmpty : to clean empty element from slice. See: http://dabase.com/e/15006/
-func DeleteEmpty(s []string) []string {
-	var r []string
+func DeleteEmpty(s []string) (r []string) {
 	for _, str := range s {
 		if str != "" {
 			r = append(r, str)
@@ -23,8 +21,7 @@ func DeleteEmpty(s []string) []string {
 }
 
 // ExtractDirs : Get Dir path from os.info
-func ExtractDirs(fileInfos []os.FileInfo) []string {
-	var resultList []string
+func ExtractDirs(fileInfos []os.FileInfo) (resultList []string) {
 	for _, fileInfo := range fileInfos {
 		resultList = append(resultList, fileInfo.Name())
 	}
@@ -54,21 +51,19 @@ func GetUnique(input []string) []string {
 }
 
 // IsDir : check if the input is directory or not
-func IsDir(filePath string) bool {
+func IsDir(filePath string) (bool, error) {
 	info, err := os.Stat(filePath)
 	if err != nil {
-		log.Print(err)
-		return false
+		return false, err
 	}
-	return info.IsDir()
+	return info.IsDir(), nil
 }
 
 // GetParentFolders : Get files's parent folder
-func GetParentFolders(files []string) []string {
-	var resultSlice []string
+func GetParentFolders(files []string) (resultSlice []string) {
 	for _, file := range files {
 		dir := strings.Split(file, "/")[0]
-		if IsDir(dir) {
+		if ok, _ := IsDir(dir); ok {
 			resultSlice = append(resultSlice, dir)
 		}
 
@@ -77,8 +72,7 @@ func GetParentFolders(files []string) []string {
 }
 
 // FilterExtFiles : Try to find glitch
-func FilterExtFiles(files []string) []string {
-	var resultSlice []string
+func FilterExtFiles(files []string) (resultSlice []string) {
 	for _, ext := range Extensions {
 		for _, file := range files {
 			if filepath.Ext(file) == ext {

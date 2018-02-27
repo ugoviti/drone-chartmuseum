@@ -31,7 +31,7 @@ type (
 )
 
 // GetDiffFiles : similar to git diff, get the file changes between 2 commits
-func (p *Plugin) GetDiffFiles() []string {
+func (p *Plugin) GetDiffFiles() ([]string, error) {
 	fmt.Printf("Getting diff between %v and %v ...\n", p.Config.PreviousCommitID, p.Config.CurrentCommitID)
 	repository, err := git.OpenRepository(p.Config.ChartDir)
 	if err != nil {
@@ -48,13 +48,11 @@ func (p *Plugin) GetDiffFiles() []string {
 		log.Fatal(err)
 	}
 
-	return files
+	return files, err
 }
 
 // SaveChartToPackage : save helm chart folder to compressed package
-func (p *Plugin) SaveChartToPackage(chartPath string) (string, error) {
-	var message string
-	var err error
+func (p *Plugin) SaveChartToPackage(chartPath string) (message string, err error) {
 	if _, err := os.Stat(p.Config.SaveDir); os.IsNotExist(err) {
 		os.Mkdir(p.Config.SaveDir, os.ModePerm)
 	}
@@ -71,23 +69,29 @@ func (p *Plugin) SaveChartToPackage(chartPath string) (string, error) {
 	return message, err
 }
 
-func (p *Plugin) defaultExec(files []string) {
+func (p *Plugin) defaultExec(files []string) (err error) {
 	var resultList []string
 	for _, file := range files {
 		chart, err := p.SaveChartToPackage(file)
 		if err == nil {
 			resultList = append(resultList, chart)
+		} else {
+			log.Print(err)
 		}
 	}
-	cmclient.UploadToServer(resultList, p.Config.RepoURL)
+	err = cmclient.UploadToServer(resultList, p.Config.RepoURL)
+	return err
 }
 
-func (p *Plugin) exec() error {
+func (p *Plugin) exec() (err error) {
 	var files []string
 	if p.Config.ChartPath != "" {
 		files = []string{p.Config.ChartPath}
 	} else if p.Config.PreviousCommitID != "" && p.Config.CurrentCommitID != "" {
-		diffFiles := p.GetDiffFiles()
+		diffFiles, err := p.GetDiffFiles()
+		if err != nil {
+			log.Fatal(err)
+		}
 		files = util.GetParentFolders(util.FilterExtFiles(diffFiles))
 	} else {
 		dirs, err := ioutil.ReadDir(p.Config.ChartDir)
@@ -97,6 +101,6 @@ func (p *Plugin) exec() error {
 		files = util.ExtractDirs(dirs)
 	}
 
-	p.defaultExec(files)
-	return nil
+	err = p.defaultExec(files)
+	return err
 }
