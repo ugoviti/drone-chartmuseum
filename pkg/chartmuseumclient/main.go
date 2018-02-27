@@ -7,31 +7,9 @@ import (
 	"net/http"
 	"os"
 
-	"code.gitea.io/git"
 	"github.com/honestbee/drone-chartmuseum/pkg/util"
 	"k8s.io/helm/pkg/chartutil"
 )
-
-// GetDiffFiles : similar to git diff, get the file changes between 2 commits
-func GetDiffFiles(repoPath, previousCommitID, commitID string) []string {
-	fmt.Printf("Getting diff between %v and %v ...\n", previousCommitID, commitID)
-	repository, err := git.OpenRepository(repoPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	commit, err := repository.GetCommit(commitID)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	files, err := commit.GetFilesChangedSinceCommit(previousCommitID)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return files
-}
 
 // SaveChartToPackage : save helm chart folder to compressed package
 func SaveChartToPackage(chartPath string, dstPath string) (string, error) {
