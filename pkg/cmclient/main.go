@@ -8,28 +8,7 @@ import (
 	"os"
 
 	"github.com/honestbee/drone-chartmuseum/pkg/util"
-	"k8s.io/helm/pkg/chartutil"
 )
-
-// SaveChartToPackage : save helm chart folder to compressed package
-func SaveChartToPackage(chartPath string, dstPath string) (string, error) {
-	var message string
-	var err error
-	if _, err := os.Stat(dstPath); os.IsNotExist(err) {
-		os.Mkdir(dstPath, os.ModePerm)
-	}
-
-	if ok, _ := chartutil.IsChartDir(chartPath); ok == true {
-		c, _ := chartutil.LoadDir(chartPath)
-		message, err = chartutil.Save(c, dstPath)
-		if err != nil {
-			log.Printf("%v : %v", chartPath, err)
-		}
-		fmt.Printf("packaging %v ...\n", message)
-	}
-
-	return message, err
-}
 
 // UploadToServer : Upload chart package to chartmuseum server
 func UploadToServer(filePaths []string, serverEndpoint string) {

@@ -26,10 +26,30 @@ type (
 	}
 )
 
+// SaveChartToPackage : save helm chart folder to compressed package
+func (p *Plugin) SaveChartToPackage(chartPath string) (string, error) {
+	var message string
+	var err error
+	if _, err := os.Stat(p.Config.SaveDir); os.IsNotExist(err) {
+		os.Mkdir(p.Config.SaveDir, os.ModePerm)
+	}
+
+	if ok, _ := chartutil.IsChartDir(chartPath); ok == true {
+		c, _ := chartutil.LoadDir(chartPath)
+		message, err = chartutil.Save(c, p.Config.SaveDir)
+		if err != nil {
+			log.Printf("%v : %v", chartPath, err)
+		}
+		fmt.Printf("packaging %v ...\n", message)
+	}
+
+	return message, err
+}
+
 func (p *Plugin) defaultExec(files []string) {
 	var resultList []string
 	for _, file := range files {
-		chart, err := cmclient.SaveChartToPackage(file, p.Config.SaveDir)
+		chart, err := p.SaveChartToPackage(file)
 		if err == nil {
 			resultList = append(resultList, chart)
 		}
