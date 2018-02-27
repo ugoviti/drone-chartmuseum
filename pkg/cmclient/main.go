@@ -1,4 +1,4 @@
-package chartmuseumclient
+package cmclient
 
 import (
 	"fmt"

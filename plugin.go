@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/honestbee/drone-chartmuseum/pkg/chartmuseumclient"
+	"github.com/honestbee/drone-chartmuseum/pkg/cmclient"
 	"github.com/honestbee/drone-chartmuseum/pkg/util"
 )
 
@@ -29,12 +29,12 @@ type (
 func (p *Plugin) defaultExec(files []string) {
 	var resultList []string
 	for _, file := range files {
-		chart, err := chartmuseumclient.SaveChartToPackage(file, p.Config.SaveDir)
+		chart, err := cmclient.SaveChartToPackage(file, p.Config.SaveDir)
 		if err == nil {
 			resultList = append(resultList, chart)
 		}
 	}
-	chartmuseumclient.UploadToServer(resultList, p.Config.RepoURL)
+	cmclient.UploadToServer(resultList, p.Config.RepoURL)
 }
 
 func (p *Plugin) exec() error {
@@ -42,7 +42,7 @@ func (p *Plugin) exec() error {
 	if p.Config.ChartPath != "" {
 		files = []string{p.Config.ChartPath}
 	} else if p.Config.PreviousCommitID != "" && p.Config.CurrentCommitID != "" {
-		diffFiles := chartmuseumclient.GetDiffFiles(p.Config.ChartPath, p.Config.PreviousCommitID, p.Config.CurrentCommitID)
+		diffFiles := util.GetDiffFiles(p.Config.ChartPath, p.Config.PreviousCommitID, p.Config.CurrentCommitID)
 		files = util.GetParentFolders(util.FilterExtFiles(diffFiles))
 	} else {
 		dirs, err := ioutil.ReadDir(p.Config.ChartDir)
