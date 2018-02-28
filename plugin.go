@@ -62,7 +62,7 @@ func (p *Plugin) exec() (err error) {
 	return nil
 }
 
-// FindCharts : find
+// FindCharts : closure function, to return unique map of charts
 func (p *Plugin) FindCharts(filesList []string) func() map[string]struct{} {
 
 	foo := func() map[string]struct{} {
@@ -82,7 +82,7 @@ func (p *Plugin) FindCharts(filesList []string) func() map[string]struct{} {
 	return foo
 }
 
-// ExtractAllCharts : abc
+// ExtractAllCharts : function to extract all folders
 func (p *Plugin) ExtractAllCharts() []string {
 
 	fileInfos, err := ioutil.ReadDir(p.Config.ChartsDir)
@@ -93,7 +93,7 @@ func (p *Plugin) ExtractAllCharts() []string {
 	return util.ExtractName(fileInfos)
 }
 
-// ExtractModifiedCharts : 123
+// ExtractModifiedCharts : function to extract diff folders
 func (p *Plugin) ExtractModifiedCharts() (filesList []string) {
 	files, err := p.GetDiffFiles()
 	if err != nil {
