@@ -5,8 +5,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-
-	"k8s.io/helm/pkg/chartutil"
 )
 
 // Extensions : the [...]T syntax is sugar for [123]T. It creates a fixed size array, but lets the compiler figure out how many elements are in it.
@@ -42,15 +40,6 @@ func DeleteEmpty(s []string) (r []string) {
 		}
 	}
 	return r
-}
-
-// CheckValidChart : Check for valid helm chart
-func CheckValidChart(chartPath string) bool {
-	if ok, _ := chartutil.IsChartDir(chartPath); ok == true {
-		return true
-	}
-	return false
-
 }
 
 // SortStringSlice : little technique to sort slice to use in unit test. See: https://godoc.org/github.com/google/go-cmp/cmp#example-Option--SortedSlice

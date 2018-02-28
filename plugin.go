@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/git"
@@ -46,9 +47,24 @@ func (p *Plugin) exec() (err error) {
 	chartsMap := make(map[string]struct{})
 
 	if p.Config.PreviousCommitID == "" {
-		chartsMap = p.FindCharts(p.ExtractAllDirs())
+		if p.Config.ChartPath != "" {
+			chartsMap = p.GetValidCharts(map[string]struct{}{
+				p.Config.ChartPath: struct{}{},
+			})
+		} else {
+			chartsMap = p.FindAllCharts()
+		}
 	} else {
-		chartsMap = p.FindCharts(p.ExtractModifiedDirs())
+		if p.Config.ChartPath != "" {
+			if util.Contains(p.FindModifiedCharts(), p.Config.ChartPath) {
+				chartsMap = p.GetValidCharts(map[string]struct{}{
+					p.Config.ChartPath: struct{}{},
+				})
+			}
+		} else {
+			chartsMap = p.FindModifiedCharts()
+
+		}
 	}
 
 	uploadPackages, err := p.SaveChartToPackage(chartsMap)
@@ -56,19 +72,11 @@ func (p *Plugin) exec() (err error) {
 	return nil
 }
 
-// FindCharts : closure function, to return unique map of charts
-func (p *Plugin) FindCharts(filesMap map[string]struct{}) map[string]struct{} {
+// GetValidCharts : Get valid helm charts map
+func (p *Plugin) GetValidCharts(filesMap map[string]struct{}) map[string]struct{} {
 	chartsMap := make(map[string]struct{})
-	if p.Config.ChartPath != "" {
-		if util.Contains(filesMap, p.Config.ChartPath) {
-			for k := range filesMap {
-				delete(filesMap, k)
-			}
-			filesMap[p.Config.ChartPath] = struct{}{}
-		}
-	}
 	for file := range filesMap {
-		if util.CheckValidChart(p.Config.ChartsDir + file) {
+		if ok, _ := chartutil.IsChartDir(filepath.Join(p.Config.ChartsDir, file)); ok == true {
 			chartsMap[file] = struct{}{}
 		}
 	}
@@ -76,30 +84,34 @@ func (p *Plugin) FindCharts(filesMap map[string]struct{}) map[string]struct{} {
 	return chartsMap
 }
 
-// ExtractAllDirs : function to extract all folders
-func (p *Plugin) ExtractAllDirs() map[string]struct{} {
+// FindAllCharts : function to extract all folders
+func (p *Plugin) FindAllCharts() map[string]struct{} {
 
 	fileInfos, err := ioutil.ReadDir(p.Config.ChartsDir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return util.ExtractName(fileInfos, p.Config.ChartsDir)
+	filesMap := util.ExtractName(fileInfos, p.Config.ChartsDir)
+	return p.GetValidCharts(filesMap)
 }
 
-// ExtractModifiedDirs : function to extract diff folders
-func (p *Plugin) ExtractModifiedDirs() map[string]struct{} {
+// FindModifiedCharts : function to extract diff folders
+func (p *Plugin) FindModifiedCharts() map[string]struct{} {
 	filesDir := make(map[string]struct{})
-	filesMap, err := p.GetDiffFiles()
+	filesDiffMap, err := p.GetDiffFiles()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for file := range filesMap {
-		filesDir[strings.Split(file, "/")[0]] = struct{}{}
+	for file := range filesDiffMap {
+		if strings.Contains(file, "terraform") == false {
+			filesDir[strings.Split(file, "/")[0]] = struct{}{}
+		}
+
 	}
 
-	return filesDir
+	return p.GetValidCharts(filesDir)
 }
 
 // GetDiffFiles : similar to git diff, get the file changes between 2 commits
@@ -121,6 +133,10 @@ func (p *Plugin) GetDiffFiles() (map[string]struct{}, error) {
 		return nil, err
 	}
 
+	if len(files) == 0 {
+		return nil, nil
+	}
+
 	for _, file := range files {
 		filesMap[file] = struct{}{}
 	}
@@ -135,7 +151,7 @@ func (p *Plugin) SaveChartToPackage(chartsMap map[string]struct{}) (messages []s
 	}
 
 	for chart := range chartsMap {
-		c, _ := chartutil.LoadDir(p.Config.ChartsDir + chart)
+		c, _ := chartutil.LoadDir(filepath.Join(p.Config.ChartsDir, chart))
 		message, err := chartutil.Save(c, p.Config.SaveDir)
 
 		if err != nil {
