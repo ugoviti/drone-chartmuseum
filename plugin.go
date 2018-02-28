@@ -24,7 +24,6 @@ type (
 		SaveDir          string `json:"save_dir,omitempty"`
 		PreviousCommitID string `json:"previous_commit_id,omitempty"`
 		CurrentCommitID  string `json:"current_commit_id,omitempty"`
-		IsSingle         bool   `json:"is_single,omitempty"`
 	}
 
 	// Plugin struct
@@ -39,11 +38,6 @@ func (p *Plugin) ValidateConfig() (err error) {
 		err = errors.New("RepoURL is not valid")
 	}
 
-	if p.Config.ChartPath == "" {
-		p.Config.IsSingle = false
-	} else {
-		p.Config.IsSingle = true
-	}
 	return
 }
 
@@ -52,64 +46,66 @@ func (p *Plugin) exec() (err error) {
 	chartsMap := make(map[string]struct{})
 
 	if p.Config.PreviousCommitID == "" {
-		execute := p.FindCharts(p.ExtractAllCharts())
-		chartsMap = execute()
+		chartsMap = p.FindCharts(p.ExtractAllDirs())
 	} else {
-		execute := p.FindCharts(p.ExtractModifiedCharts())
-		chartsMap = execute()
+		chartsMap = p.FindCharts(p.ExtractModifiedDirs())
 	}
+
 	uploadPackages, err := p.SaveChartToPackage(chartsMap)
 	cmclient.UploadToServer(uploadPackages, p.Config.RepoURL)
 	return nil
 }
 
 // FindCharts : closure function, to return unique map of charts
-func (p *Plugin) FindCharts(filesList []string) func() map[string]struct{} {
-
-	foo := func() map[string]struct{} {
-		chartsMap := make(map[string]struct{})
-		if p.Config.IsSingle {
-			if util.Contains(filesList, p.Config.ChartPath) {
-				filesList = []string{p.Config.ChartPath}
+func (p *Plugin) FindCharts(filesMap map[string]struct{}) map[string]struct{} {
+	chartsMap := make(map[string]struct{})
+	if p.Config.ChartPath != "" {
+		if util.Contains(filesMap, p.Config.ChartPath) {
+			for k := range filesMap {
+				delete(filesMap, k)
 			}
+			filesMap[p.Config.ChartPath] = struct{}{}
 		}
-		for _, dir := range filesList {
-			if util.CheckValidChart(p.Config.ChartsDir + dir) {
-				chartsMap[dir] = struct{}{}
-			}
-		}
-		return chartsMap
 	}
-	return foo
+	for file := range filesMap {
+		if util.CheckValidChart(p.Config.ChartsDir + file) {
+			chartsMap[file] = struct{}{}
+		}
+	}
+
+	return chartsMap
 }
 
-// ExtractAllCharts : function to extract all folders
-func (p *Plugin) ExtractAllCharts() []string {
+// ExtractAllDirs : function to extract all folders
+func (p *Plugin) ExtractAllDirs() map[string]struct{} {
 
 	fileInfos, err := ioutil.ReadDir(p.Config.ChartsDir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return util.ExtractName(fileInfos)
+	return util.ExtractName(fileInfos, p.Config.ChartsDir)
 }
 
-// ExtractModifiedCharts : function to extract diff folders
-func (p *Plugin) ExtractModifiedCharts() (filesList []string) {
-	files, err := p.GetDiffFiles()
+// ExtractModifiedDirs : function to extract diff folders
+func (p *Plugin) ExtractModifiedDirs() map[string]struct{} {
+	filesDir := make(map[string]struct{})
+	filesMap, err := p.GetDiffFiles()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for _, file := range files {
-		filesList = append(filesList, strings.Split(file, "/")[0])
+	for file := range filesMap {
+		filesDir[strings.Split(file, "/")[0]] = struct{}{}
 	}
-	return filesList
+
+	return filesDir
 }
 
 // GetDiffFiles : similar to git diff, get the file changes between 2 commits
-func (p *Plugin) GetDiffFiles() ([]string, error) {
+func (p *Plugin) GetDiffFiles() (map[string]struct{}, error) {
 	fmt.Printf("Getting diff between %v and %v ...\n", p.Config.PreviousCommitID, p.Config.CurrentCommitID)
+	filesMap := make(map[string]struct{})
 	repository, err := git.OpenRepository(p.Config.ChartsDir)
 	if err != nil {
 		return nil, err
@@ -125,7 +121,11 @@ func (p *Plugin) GetDiffFiles() ([]string, error) {
 		return nil, err
 	}
 
-	return files, nil
+	for _, file := range files {
+		filesMap[file] = struct{}{}
+	}
+
+	return filesMap, nil
 }
 
 // SaveChartToPackage : save helm chart folder to compressed package

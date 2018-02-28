@@ -13,8 +13,8 @@ import (
 var Extensions = [...]string{".yaml", ".yml"}
 
 // Contains : check if element exists in string slice
-func Contains(s []string, e string) bool {
-	for _, a := range s {
+func Contains(m map[string]struct{}, e string) bool {
+	for a := range m {
 		if a == e {
 			return true
 		}
@@ -22,12 +22,16 @@ func Contains(s []string, e string) bool {
 	return false
 }
 
-// ExtractName :
-func ExtractName(fileInfos []os.FileInfo) (resultSlice []string) {
+// ExtractName : Extract parent folder's name
+func ExtractName(fileInfos []os.FileInfo, basePath string) map[string]struct{} {
+	resultMap := make(map[string]struct{})
 	for _, fileInfo := range fileInfos {
-		resultSlice = append(resultSlice, fileInfo.Name())
+		if ok, _ := IsDir(basePath + fileInfo.Name()); ok {
+			resultMap[fileInfo.Name()] = struct{}{}
+		}
+
 	}
-	return
+	return resultMap
 }
 
 // DeleteEmpty : to clean empty element from slice. See: http://dabase.com/e/15006/
