@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -34,9 +35,9 @@ type (
 
 // ValidateConfig :
 func (p *Plugin) ValidateConfig() (err error) {
-	// if p.Config.RepoURL == "" {
-	// 	err = errors.New("RepoURL is not valid")
-	// }
+	if p.Config.RepoURL == "" {
+		err = errors.New("RepoURL is not valid")
+	}
 
 	if p.Config.ChartPath == "" {
 		p.Config.IsSingle = false
