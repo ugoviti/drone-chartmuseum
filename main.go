@@ -28,10 +28,10 @@ func initApp() *cli.App {
 			EnvVar: "PLUGIN_CHART_PATH, CHART_PATH",
 		},
 		cli.StringFlag{
-			Name:   "chart-dir",
+			Name:   "charts-dir",
 			Value:  "./",
 			Usage:  "chart directory",
-			EnvVar: "PLUGIN_CHART_DIR, CHART_DIR",
+			EnvVar: "PLUGIN_CHARTS_DIR, CHARTS_DIR",
 		},
 		cli.StringFlag{
 			Name:   "save-dir",
@@ -61,7 +61,7 @@ func defaultAction(c *cli.Context) error {
 	plugin := Plugin{
 		Config: Config{
 			RepoURL:          c.String("repo-url"),
-			ChartDir:         c.String("chart-dir"),
+			ChartsDir:        c.String("charts-dir"),
 			ChartPath:        c.String("chart-path"),
 			PreviousCommitID: c.String("previous-commit"),
 			CurrentCommitID:  c.String("current-commit"),
