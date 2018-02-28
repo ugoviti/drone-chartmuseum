@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"k8s.io/helm/pkg/chartutil"
 )
 
 // Extensions : the [...]T syntax is sugar for [123]T. It creates a fixed size array, but lets the compiler figure out how many elements are in it.
@@ -20,6 +22,14 @@ func Contains(s []string, e string) bool {
 	return false
 }
 
+// ExtractName :
+func ExtractName(fileInfos []os.FileInfo) (resultSlice []string) {
+	for _, fileInfo := range fileInfos {
+		resultSlice = append(resultSlice, fileInfo.Name())
+	}
+	return
+}
+
 // DeleteEmpty : to clean empty element from slice. See: http://dabase.com/e/15006/
 func DeleteEmpty(s []string) (r []string) {
 	for _, str := range s {
@@ -30,12 +40,13 @@ func DeleteEmpty(s []string) (r []string) {
 	return r
 }
 
-// ExtractDirs : Get Dir path from os.info
-func ExtractDirs(fileInfos []os.FileInfo) (resultList []string) {
-	for _, fileInfo := range fileInfos {
-		resultList = append(resultList, fileInfo.Name())
+// CheckValidChart : Check for valid helm chart
+func CheckValidChart(chartPath string) bool {
+	if ok, _ := chartutil.IsChartDir(chartPath); ok == true {
+		return true
 	}
-	return resultList
+	return false
+
 }
 
 // SortStringSlice : little technique to sort slice to use in unit test. See: https://godoc.org/github.com/google/go-cmp/cmp#example-Option--SortedSlice
@@ -78,14 +89,14 @@ func GetParentFolders(files []string) (resultSlice []string) {
 		}
 
 	}
-	return GetUnique(resultSlice)
+	return resultSlice
 }
 
 // FilterExtFiles : Try to find glitch
-func FilterExtFiles(files []string) (resultSlice []string) {
+func FilterExtFiles(files []string, basePath string) (resultSlice []string) {
 	for _, ext := range Extensions {
 		for _, file := range files {
-			if filepath.Ext(file) == ext {
+			if filepath.Ext(basePath+file) == ext {
 				resultSlice = append(resultSlice, file)
 
 			}

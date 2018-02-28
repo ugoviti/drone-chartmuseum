@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 
 	"code.gitea.io/git"
 	"github.com/honestbee/drone-chartmuseum/pkg/cmclient"
@@ -18,10 +19,11 @@ type (
 	Config struct {
 		RepoURL          string `json:"repo_url,omitempty"`
 		ChartPath        string `json:"chart_path,omitempty"`
-		ChartDir         string `json:"chart_dir,omitempty"`
+		ChartsDir        string `json:"charts_dir,omitempty"`
 		SaveDir          string `json:"save_dir,omitempty"`
 		PreviousCommitID string `json:"previous_commit_id,omitempty"`
 		CurrentCommitID  string `json:"current_commit_id,omitempty"`
+		IsSingle         bool   `json:"is_single,omitempty"`
 	}
 
 	// Plugin struct
@@ -30,10 +32,84 @@ type (
 	}
 )
 
+// ValidateConfig :
+func (p *Plugin) ValidateConfig() (err error) {
+	// if p.Config.RepoURL == "" {
+	// 	err = errors.New("RepoURL is not valid")
+	// }
+
+	if p.Config.ChartPath == "" {
+		p.Config.IsSingle = false
+	} else {
+		p.Config.IsSingle = true
+	}
+	return
+}
+
+func (p *Plugin) exec() (err error) {
+	p.ValidateConfig()
+	chartsMap := make(map[string]struct{})
+
+	if p.Config.PreviousCommitID == "" {
+		execute := p.FindCharts(p.ExtractAllCharts())
+		chartsMap = execute()
+	} else {
+		execute := p.FindCharts(p.ExtractModifiedCharts())
+		chartsMap = execute()
+	}
+	uploadPackages, err := p.SaveChartToPackage(chartsMap)
+	cmclient.UploadToServer(uploadPackages, p.Config.RepoURL)
+	return nil
+}
+
+// FindCharts : find
+func (p *Plugin) FindCharts(filesList []string) func() map[string]struct{} {
+
+	foo := func() map[string]struct{} {
+		chartsMap := make(map[string]struct{})
+		if p.Config.IsSingle {
+			if util.Contains(filesList, p.Config.ChartPath) {
+				filesList = []string{p.Config.ChartPath}
+			}
+		}
+		for _, dir := range filesList {
+			if util.CheckValidChart(p.Config.ChartsDir + dir) {
+				chartsMap[dir] = struct{}{}
+			}
+		}
+		return chartsMap
+	}
+	return foo
+}
+
+// ExtractAllCharts : abc
+func (p *Plugin) ExtractAllCharts() []string {
+
+	fileInfos, err := ioutil.ReadDir(p.Config.ChartsDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return util.ExtractName(fileInfos)
+}
+
+// ExtractModifiedCharts : 123
+func (p *Plugin) ExtractModifiedCharts() (filesList []string) {
+	files, err := p.GetDiffFiles()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, file := range files {
+		filesList = append(filesList, strings.Split(file, "/")[0])
+	}
+	return filesList
+}
+
 // GetDiffFiles : similar to git diff, get the file changes between 2 commits
 func (p *Plugin) GetDiffFiles() ([]string, error) {
 	fmt.Printf("Getting diff between %v and %v ...\n", p.Config.PreviousCommitID, p.Config.CurrentCommitID)
-	repository, err := git.OpenRepository(p.Config.ChartDir)
+	repository, err := git.OpenRepository(p.Config.ChartsDir)
 	if err != nil {
 		return nil, err
 	}
@@ -52,70 +128,22 @@ func (p *Plugin) GetDiffFiles() ([]string, error) {
 }
 
 // SaveChartToPackage : save helm chart folder to compressed package
-func (p *Plugin) SaveChartToPackage(chartPath string) (message string, err error) {
+func (p *Plugin) SaveChartToPackage(chartsMap map[string]struct{}) (messages []string, err error) {
 	if _, err := os.Stat(p.Config.SaveDir); os.IsNotExist(err) {
 		os.Mkdir(p.Config.SaveDir, os.ModePerm)
 	}
 
-	if ok, _ := chartutil.IsChartDir(chartPath); ok == true {
-		c, _ := chartutil.LoadDir(chartPath)
-		message, err = chartutil.Save(c, p.Config.SaveDir)
+	for chart := range chartsMap {
+		c, _ := chartutil.LoadDir(p.Config.ChartsDir + chart)
+		message, err := chartutil.Save(c, p.Config.SaveDir)
+
 		if err != nil {
-			log.Printf("%v : %v", chartPath, err)
+			log.Printf("%v : %v", chart, err)
+		} else {
+			messages = append(messages, message)
 		}
 		fmt.Printf("packaging %v ...\n", message)
 	}
 
-	return message, nil
-}
-
-// PackageAndUpload : get list of files, create package and upload
-func (p *Plugin) PackageAndUpload(files []string) (err error) {
-	var resultList []string
-	for _, file := range files {
-		chart, err := p.SaveChartToPackage(file)
-		if err == nil {
-			resultList = append(resultList, chart)
-		} else {
-			log.Print(err)
-		}
-	}
-	err = cmclient.UploadToServer(resultList, p.Config.RepoURL)
-	return err
-}
-
-// exec : main logic
-func (p *Plugin) exec() (err error) {
-	var files []string
-	isDiff := p.Config.PreviousCommitID != "" && p.Config.CurrentCommitID != ""
-	isPath := p.Config.ChartPath != ""
-
-	if isDiff {
-		diffFiles, err := p.GetDiffFiles()
-		if err != nil {
-			log.Fatal(err)
-		}
-		files = util.GetParentFolders(util.FilterExtFiles(diffFiles))
-
-		if isPath {
-			if util.Contains(files, p.Config.ChartPath) {
-				files = []string{p.Config.ChartPath}
-			} else {
-				files = []string{}
-			}
-		}
-	} else {
-		if isPath {
-			files = []string{p.Config.ChartPath}
-		} else {
-			dirs, err := ioutil.ReadDir(p.Config.ChartDir)
-			if err != nil {
-				log.Fatal(err)
-			}
-			files = util.ExtractDirs(dirs)
-		}
-	}
-
-	err = p.PackageAndUpload(files)
-	return err
+	return messages, err
 }
