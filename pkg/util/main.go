@@ -24,7 +24,7 @@ func Contains(m map[string]struct{}, e string) bool {
 func ExtractName(fileInfos []os.FileInfo, basePath string) map[string]struct{} {
 	resultMap := make(map[string]struct{})
 	for _, fileInfo := range fileInfos {
-		if ok, _ := IsDir(basePath + fileInfo.Name()); ok {
+		if ok, _ := IsDir(filepath.Join(basePath, fileInfo.Name())); ok {
 			resultMap[fileInfo.Name()] = struct{}{}
 		}
 
@@ -89,7 +89,7 @@ func GetParentFolders(files []string) (resultSlice []string) {
 func FilterExtFiles(files []string, basePath string) (resultSlice []string) {
 	for _, ext := range Extensions {
 		for _, file := range files {
-			if filepath.Ext(basePath+file) == ext {
+			if filepath.Ext(filepath.Join(basePath, file)) == ext {
 				resultSlice = append(resultSlice, file)
 
 			}
