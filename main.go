@@ -16,37 +16,37 @@ func initApp() *cli.App {
 
 	mainFlag := []cli.Flag{
 		cli.StringFlag{
-			Name:   "repo-url",
+			Name:   "repo-url,u",
 			Value:  "",
-			Usage:  "chartmuseum server endpoint",
+			Usage:  "ChartMuseum API base URL",
 			EnvVar: "PLUGIN_REPO_URL,REPO_URL",
 		},
 		cli.StringFlag{
-			Name:   "chart-path",
-			Usage:  "chart path",
+			Name:   "chart-path,i",
+			Usage:  "Path to chart, relative to charts-dir",
 			Value:  "",
 			EnvVar: "PLUGIN_CHART_PATH,CHART_PATH",
 		},
 		cli.StringFlag{
-			Name:   "charts-dir",
+			Name:   "charts-dir,d",
 			Value:  "./",
 			Usage:  "chart directory",
 			EnvVar: "PLUGIN_CHARTS_DIR,CHARTS_DIR",
 		},
 		cli.StringFlag{
-			Name:   "save-dir",
+			Name:   "save-dir,o",
 			Value:  "uploads/",
-			Usage:  "directory to save chart packages",
+			Usage:  "Directory to save chart packages",
 			EnvVar: "PLUGIN_SAVE_DIR,SAVE_DIR",
 		},
 		cli.StringFlag{
-			Name:   "previous-commit",
-			Usage:  "previous commit id (`COMMIT_SHA`)",
+			Name:   "previous-commit,p",
+			Usage:  "Previous commit id (`COMMIT_SHA`)",
 			EnvVar: "PLUGIN_PREVIOUS_COMMIT,PREVIOUS_COMMIT",
 		},
 		cli.StringFlag{
-			Name:   "current-commit",
-			Usage:  "current commit id (`COMMIT_SHA`)",
+			Name:   "current-commit,c",
+			Usage:  "Current commit id (`COMMIT_SHA`)",
 			EnvVar: "PLUGIN_CURRENT_COMMIT,CURRENT_COMMIT",
 		},
 	}
@@ -59,7 +59,7 @@ func initApp() *cli.App {
 
 func defaultAction(c *cli.Context) error {
 	plugin := Plugin{
-		Config: Config{
+		Config: &Config{
 			RepoURL:          c.String("repo-url"),
 			ChartsDir:        c.String("charts-dir"),
 			ChartPath:        c.String("chart-path"),

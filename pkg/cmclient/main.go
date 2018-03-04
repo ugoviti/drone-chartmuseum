@@ -39,6 +39,9 @@ type (
 // If trailing slash is missing from base URL, one is added automatically.
 // If a nil httpClient is provided, http.DefaultClient will be used.
 func NewClient(baseURL string, httpClient *http.Client) (*Client, error) {
+	if baseURL == "" {
+		return nil, fmt.Errorf("ChartMuseum API - base URL can not be blank")
+	}
 	baseEndpoint, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, err

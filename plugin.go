@@ -33,6 +33,8 @@ type (
 		Repository *git.Repository
 		Commit     *git.Commit
 		Client     *cm.Client
+
+		CombinedChartPath string
 	}
 
 	// Chart holds path and parsed helmignore Rules
@@ -44,8 +46,9 @@ type (
 
 // ValidateConfig validates plugin configuration
 func (p *Plugin) ValidateConfig() error {
+	var err error
 	// validate ChartMuseum baseURL
-	if p.Client, err := cm.NewClient(p.Config.RepoURL); err != nil {
+	if p.Client, err = cm.NewClient(p.Config.RepoURL, nil); err != nil {
 		return err
 	}
 
@@ -71,13 +74,14 @@ func (p *Plugin) ValidateConfig() error {
 	}
 
 	if p.Config.ChartPath != "" {
+		p.CombinedChartPath = filepath.Join(p.Config.ChartsDir, p.Config.ChartPath)
 		// validate chart-path is a valid chart
-		if valid, err := chartutil.IsChartDir(filepath.Join(p.Config.ChartsDir, p.Config.ChartPath)); !valid {
+		if valid, err := chartutil.IsChartDir(p.CombinedChartPath); !valid {
 			return err
 		}
 	}
 
-	return
+	return nil
 }
 
 func (p *Plugin) exec() error {
@@ -89,6 +93,7 @@ func (p *Plugin) exec() error {
 		if charts, err = p.discoverCharts(); err != nil {
 			return err
 		}
+
 		os.MkdirAll(p.Config.SaveDir, os.ModePerm)
 		for _, chart := range charts {
 			if c, err := p.packageChart(chart); util.Pass(err) {
@@ -99,14 +104,14 @@ func (p *Plugin) exec() error {
 				}
 			}
 		}
-	} 
+	}
 
 	return nil
 }
 
 // PackageChart saves a helm chart directory to a compressed package
 func (p *Plugin) packageChart(chart string) (string, error) {
-	c, err := chartutil.LoadDir(filepath.Join(p.Config.ChartsDir, chart))
+	c, err := chartutil.LoadDir(chart)
 	if err != nil {
 		return "", err
 	}
@@ -116,7 +121,7 @@ func (p *Plugin) packageChart(chart string) (string, error) {
 // discoverCharts finds charts based on plugin configuration
 func (p *Plugin) discoverCharts() (charts []string, err error) {
 	if p.Config.ChartPath != "" {
-		charts, err = []string{p.Config.ChartPath}, nil
+		charts, err = []string{p.CombinedChartPath}, nil
 	}
 
 	if p.Config.CurrentCommitID != "" {
@@ -125,7 +130,7 @@ func (p *Plugin) discoverCharts() (charts []string, err error) {
 			return nil, err
 		}
 		if p.Config.ChartPath != "" {
-			if _, modified := modifiedCharts[p.Config.ChartPath]; !modified {
+			if _, modified := modifiedCharts[p.CombinedChartPath]; !modified {
 				fmt.Printf("%s wasn't modified.. nothing to do", p.Config.ChartPath)
 				return nil, nil
 			}
@@ -140,7 +145,7 @@ func (p *Plugin) discoverCharts() (charts []string, err error) {
 
 // findAllCharts recursively finds all charts within the configured charts-dir
 func (p *Plugin) findAllCharts() (charts []string, err error) {
-	fmt.Printf("Finding all charts %s\n")
+	fmt.Printf("Finding all charts...\n")
 	walk := func(path string, stat os.FileInfo, err error) error {
 		fmt.Printf("testing %s\n", path)
 		if stat != nil && stat.IsDir() {
