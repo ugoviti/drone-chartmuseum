@@ -1,18 +1,18 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"code.gitea.io/git"
-	"github.com/honestbee/drone-chartmuseum/pkg/cmclient"
+	cm "github.com/honestbee/drone-chartmuseum/pkg/cmclient"
 	"github.com/honestbee/drone-chartmuseum/pkg/util"
 	"k8s.io/helm/pkg/chartutil"
+	"k8s.io/helm/pkg/ignore"
 )
 
 type (
@@ -29,138 +29,204 @@ type (
 
 	// Plugin struct
 	Plugin struct {
-		Config Config
+		Config     *Config
+		Repository *git.Repository
+		Commit     *git.Commit
+		Client     *cm.Client
+	}
+
+	// Chart holds path and parsed helmignore Rules
+	Chart struct {
+		Path  string
+		Rules *ignore.Rules
 	}
 )
 
-// ValidateConfig :
-func (p *Plugin) ValidateConfig() (err error) {
-	if p.Config.RepoURL == "" {
-		err = errors.New("RepoURL is not valid")
+// ValidateConfig validates plugin configuration
+func (p *Plugin) ValidateConfig() error {
+	// validate ChartMuseum baseURL
+	if p.Client, err := cm.NewClient(p.Config.RepoURL); err != nil {
+		return err
+	}
+
+	// validate charts-dir is a directory
+	if fi, err := os.Stat(p.Config.ChartsDir); err == nil {
+		if !fi.IsDir() {
+			return errors.New("charts-dir should be a directory")
+		}
+	} else {
+		return err
+	}
+
+	if p.Config.CurrentCommitID != "" {
+		// validate ChartsDir is a valid repository
+		if p.Repository, err = git.OpenRepository(p.Config.ChartsDir); err != nil {
+			return err
+		}
+
+		// validate CurrentCommitID is a valid commit in the repository
+		if p.Commit, err = p.Repository.GetCommit(p.Config.CurrentCommitID); err != nil {
+			return err
+		}
+	}
+
+	if p.Config.ChartPath != "" {
+		// validate chart-path is a valid chart
+		if valid, err := chartutil.IsChartDir(filepath.Join(p.Config.ChartsDir, p.Config.ChartPath)); !valid {
+			return err
+		}
 	}
 
 	return
 }
 
-func (p *Plugin) exec() (err error) {
-	p.ValidateConfig()
-	chartsMap := make(map[string]struct{})
+func (p *Plugin) exec() error {
+	ctx := context.Background()
+	//ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 
-	if p.Config.PreviousCommitID == "" {
-		if p.Config.ChartPath != "" {
-			chartsMap = p.GetValidCharts(map[string]struct{}{
-				p.Config.ChartPath: struct{}{},
-			})
-		} else {
-			chartsMap = p.FindAllCharts()
+	if err := p.ValidateConfig(); util.Pass(err) {
+		var charts []string
+		if charts, err = p.discoverCharts(); err != nil {
+			return err
 		}
-	} else {
-		if p.Config.ChartPath != "" {
-			if util.Contains(p.FindModifiedCharts(), p.Config.ChartPath) {
-				chartsMap = p.GetValidCharts(map[string]struct{}{
-					p.Config.ChartPath: struct{}{},
-				})
+		os.MkdirAll(p.Config.SaveDir, os.ModePerm)
+		for _, chart := range charts {
+			if c, err := p.packageChart(chart); util.Pass(err) {
+				if f, err := os.Open(c); util.Pass(err) {
+					message, err := p.Client.ChartService.UploadChart(ctx, f)
+					fmt.Printf(message)
+					return err
+				}
 			}
-		} else {
-			chartsMap = p.FindModifiedCharts()
-
 		}
-	}
+	} 
 
-	uploadPackages, err := p.SaveChartToPackage(chartsMap)
-	cmclient.UploadToServer(uploadPackages, p.Config.RepoURL)
 	return nil
 }
 
-// GetValidCharts : Get valid helm charts map
-func (p *Plugin) GetValidCharts(filesMap map[string]struct{}) map[string]struct{} {
-	chartsMap := make(map[string]struct{})
-	for file := range filesMap {
-		if ok, _ := chartutil.IsChartDir(filepath.Join(p.Config.ChartsDir, file)); ok == true {
-			chartsMap[file] = struct{}{}
-		}
+// PackageChart saves a helm chart directory to a compressed package
+func (p *Plugin) packageChart(chart string) (string, error) {
+	c, err := chartutil.LoadDir(filepath.Join(p.Config.ChartsDir, chart))
+	if err != nil {
+		return "", err
 	}
-
-	return chartsMap
+	return chartutil.Save(c, p.Config.SaveDir)
 }
 
-// FindAllCharts : function to extract all folders
-func (p *Plugin) FindAllCharts() map[string]struct{} {
-
-	fileInfos, err := ioutil.ReadDir(p.Config.ChartsDir)
-	if err != nil {
-		log.Fatal(err)
+// discoverCharts finds charts based on plugin configuration
+func (p *Plugin) discoverCharts() (charts []string, err error) {
+	if p.Config.ChartPath != "" {
+		charts, err = []string{p.Config.ChartPath}, nil
 	}
 
-	filesMap := util.ExtractName(fileInfos, p.Config.ChartsDir)
-	return p.GetValidCharts(filesMap)
-}
-
-// FindModifiedCharts : function to extract diff folders
-func (p *Plugin) FindModifiedCharts() map[string]struct{} {
-	filesDir := make(map[string]struct{})
-	filesDiffMap, err := p.GetDiffFiles()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for file := range filesDiffMap {
-		if strings.Contains(file, "terraform") == false {
-			filesDir[strings.Split(file, "/")[0]] = struct{}{}
-		}
-
-	}
-
-	return p.GetValidCharts(filesDir)
-}
-
-// GetDiffFiles : similar to git diff, get the file changes between 2 commits
-func (p *Plugin) GetDiffFiles() (map[string]struct{}, error) {
-	fmt.Printf("Getting diff between %v and %v ...\n", p.Config.PreviousCommitID, p.Config.CurrentCommitID)
-	filesMap := make(map[string]struct{})
-	repository, err := git.OpenRepository(p.Config.ChartsDir)
-	if err != nil {
-		return nil, err
-	}
-
-	commit, err := repository.GetCommit(p.Config.CurrentCommitID)
-	if err != nil {
-		return nil, err
-	}
-
-	files, err := commit.GetFilesChangedSinceCommit(p.Config.PreviousCommitID)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(files) == 0 {
-		return nil, nil
-	}
-
-	for _, file := range files {
-		filesMap[file] = struct{}{}
-	}
-
-	return filesMap, nil
-}
-
-// SaveChartToPackage : save helm chart folder to compressed package
-func (p *Plugin) SaveChartToPackage(chartsMap map[string]struct{}) (messages []string, err error) {
-	if _, err := os.Stat(p.Config.SaveDir); os.IsNotExist(err) {
-		os.Mkdir(p.Config.SaveDir, os.ModePerm)
-	}
-
-	for chart := range chartsMap {
-		c, _ := chartutil.LoadDir(filepath.Join(p.Config.ChartsDir, chart))
-		message, err := chartutil.Save(c, p.Config.SaveDir)
-
+	if p.Config.CurrentCommitID != "" {
+		modifiedCharts, err := p.findModifiedCharts()
 		if err != nil {
-			log.Printf("%v : %v", chart, err)
-		} else {
-			messages = append(messages, message)
+			return nil, err
 		}
-		fmt.Printf("packaging %v ...\n", message)
+		if p.Config.ChartPath != "" {
+			if _, modified := modifiedCharts[p.Config.ChartPath]; !modified {
+				fmt.Printf("%s wasn't modified.. nothing to do", p.Config.ChartPath)
+				return nil, nil
+			}
+		} else {
+			charts = util.Keys(modifiedCharts)
+		}
+	} else if p.Config.ChartPath == "" {
+		charts, err = p.findAllCharts()
+	}
+	return charts, err
+}
+
+// findAllCharts recursively finds all charts within the configured charts-dir
+func (p *Plugin) findAllCharts() (charts []string, err error) {
+	fmt.Printf("Finding all charts %s\n")
+	walk := func(path string, stat os.FileInfo, err error) error {
+		fmt.Printf("testing %s\n", path)
+		if stat != nil && stat.IsDir() {
+			if ok, _ := chartutil.IsChartDir(path); ok {
+				fmt.Println("\tchart! jumping!\n")
+				charts = append(charts, path)
+				return filepath.SkipDir
+			}
+		}
+		return nil
+	}
+	err = filepath.Walk(p.Config.ChartsDir, walk)
+	return charts, err
+}
+
+// findModifiedCharts returns a map of all modified Charts filtered by .helmignore
+func (p *Plugin) findModifiedCharts() (map[string]struct{}, error) {
+	fmt.Printf("Getting diff between %v and %v ...\n", p.Config.PreviousCommitID, p.Config.CurrentCommitID)
+	lookupCache := make(map[string]*Chart)
+	modifiedCharts := make(map[string]struct{})
+	files, err := p.Commit.GetFilesChangedSinceCommit(p.Config.PreviousCommitID)
+	if err != nil {
+		return nil, err
+	}
+	for _, file := range files {
+		fi, err := os.Stat(file)
+		if err != nil {
+			fmt.Printf("\tIgnoring %s due to error: %v\n", file, err)
+			continue // with next modified file
+		}
+		dirName := file
+		if !fi.IsDir() {
+			dirName = filepath.Dir(dirName)
+		}
+		c, err := getChart(dirName, p.Config.ChartsDir, lookupCache)
+		if err != nil {
+			fmt.Printf("\tIgnoring %s due to error: %v\n", file, err)
+			continue // with next modified file
+		}
+
+		// flag chart modified if modified file not helmignored
+		if !c.Rules.Ignore(file, fi) {
+			modifiedCharts[c.Path] = struct{}{}
+		}
+	}
+	return modifiedCharts, nil
+}
+
+// getChart recursively walks up the file tree to find the chart a directory belongs to
+// Bug(vincent) this expects chartsDir to be valid prefix of filepath (both relative or absolute?)
+func getChart(dirName string, chartsDir string, cache map[string]*Chart) (*Chart, error) {
+	if cachedChart, _ := cache[dirName]; cachedChart != nil {
+		return cachedChart, nil
 	}
 
-	return messages, err
+	c := &Chart{}
+	if ok, _ := chartutil.IsChartDir(dirName); !ok {
+		// are we at root dir?
+		if strings.TrimPrefix(dirName, chartsDir) == "" {
+			cache[dirName] = c
+			return c, fmt.Errorf("Bailing! No chart found up to %s", chartsDir)
+		}
+		// search parent dir
+		c, err := getChart(filepath.Dir(dirName), chartsDir, cache)
+
+		cache[dirName] = c
+		return c, err
+	}
+	c.Path = dirName
+	parseHelmIgnoreRules(c)
+
+	cache[dirName] = c
+	return c, nil
+}
+
+// parseHelmIgnoreRules detects and loads helmignore Rules
+func parseHelmIgnoreRules(c *Chart) error {
+	c.Rules = ignore.Empty()
+	ifile := filepath.Join(c.Path, ignore.HelmIgnore)
+	if _, err := os.Stat(ifile); err == nil {
+		r, err := ignore.ParseFile(ifile)
+		if err != nil {
+			return err
+		}
+		c.Rules = r
+	}
+	c.Rules.AddDefaults()
+	return nil
 }
