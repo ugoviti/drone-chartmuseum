@@ -2,6 +2,7 @@ package cmclient
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -32,6 +33,16 @@ type (
 
 	service struct {
 		client *Client
+	}
+
+	// Response wraps http.Response and decodes ChartMuseum response
+	Response struct {
+		*http.Response
+
+		Message string `json:"message,omitempty"`
+		Error   string `json:"error,omitempty"`
+		Saved   bool   `json:"saved,omitempty"`
+		Deleted int    `json:"deleted,omitempty"`
 	}
 )
 
@@ -88,7 +99,7 @@ func (c *Client) NewUploadRequest(urlStr string, reader io.Reader, size int64, m
 //
 // The provided ctx must be non-nil. If it is canceled or times out,
 // ctx.Err() will be returned.
-func (c *Client) Do(ctx context.Context, req *http.Request) (string, error) {
+func (c *Client) Do(ctx context.Context, req *http.Request) (*Response, error) {
 	req = req.WithContext(ctx)
 
 	resp, err := c.httpClient.Do(req)
@@ -97,21 +108,24 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (string, error) {
 		// the context's error is probably more useful.
 		select {
 		case <-ctx.Done():
-			return "", ctx.Err()
+			return nil, ctx.Err()
 		default:
 		}
 
-		return "", err
+		return nil, err
 	}
-
-	defer resp.Body.Close()
-	return readResponse(resp)
+	return parseResponse(resp)
 }
 
-func readResponse(resp *http.Response) (string, error) {
-	responseBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
+func parseResponse(r *http.Response) (*Response, error) {
+	response := &Response{Response: r}
+	data, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err == nil && data != nil {
+		json.Unmarshal(data, response)
 	}
-	return string(responseBody), nil
+	if c := r.StatusCode; 200 <= c && c <= 299 {
+		return response, nil
+	}
+	return response, fmt.Errorf(response.Error)
 }
