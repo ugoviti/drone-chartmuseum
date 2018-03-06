@@ -1,0 +1,9 @@
+Test with modules
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+# On branch master
+# Changes to be committed:
+#	modified:   chart2/terraform/main.tf
+#	new file:   chart2/terraform/modules/first/main.tf
+#	new file:   chart2/terraform/modules/second/main.tf
+#

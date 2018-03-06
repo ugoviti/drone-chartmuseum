@@ -1,16 +1,22 @@
+# -- Go Builder Image --
+FROM golang:1.9-alpine AS builder
+
+ENV DEP_VERSION=0.4.1
+
+RUN apk add --no-cache git curl
+RUN curl -fsSL -o /usr/local/bin/dep https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 && chmod +x /usr/local/bin/dep
+COPY . /go/src/drone-chartmuseum
+WORKDIR /go/src/drone-chartmuseum
+
+# https://github.com/golang/dep/blob/master/docs/FAQ.md#how-do-i-use-dep-with-docker
+RUN set -ex \
+    && dep ensure \
+    && go build -v -o "/drone-chartmuseum"
+
+# -- drone-chartmuseum Image --
 FROM alpine:3.6
+RUN set -ex \
+    && apk add --no-cache bash ca-certificates git
 
-ENV VERSION v2.7.2
-ENV FILENAME helm-${VERSION}-linux-amd64.tar.gz
-
-COPY chartmuseum.sh /usr/local/bin/chartmuseum.sh
-
-RUN apk add --no-cache bash gawk sed grep bc coreutils curl openssl jq \
-    && chmod +x /usr/local/bin/chartmuseum.sh \
-    && curl -sLo /tmp/${FILENAME} http://storage.googleapis.com/kubernetes-helm/${FILENAME} \
-    && tar -zxvf /tmp/${FILENAME} -C /tmp \
-    && mv /tmp/linux-amd64/helm /bin/helm \
-    && rm -rf /tmp 
-
-
-ENTRYPOINT /usr/local/bin/chartmuseum.sh
+COPY --from=builder /drone-chartmuseum /bin/drone-chartmuseum
+ENTRYPOINT [ "/bin/drone-chartmuseum" ]

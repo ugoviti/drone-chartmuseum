@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 e3f490bf2cc020c8586d95699b8f82f873ec3968 so0k <vincent.drl@gmail.com> 1520174918 +0800	commit (initial): Initial commit
+e3f490bf2cc020c8586d95699b8f82f873ec3968 9261b8b3edd9e8cdab9896321711030768758662 so0k <vincent.drl@gmail.com> 1520175646 +0800	commit: Modify chart1 but not chart2
+9261b8b3edd9e8cdab9896321711030768758662 6c8ec334b25e2658b4cfdb563694a3e918e6a1c2 so0k <vincent.drl@gmail.com> 1520175686 +0800	commit: blh
+6c8ec334b25e2658b4cfdb563694a3e918e6a1c2 95e9e9bc9ecc78cf5a72de44ecced89e449e2a73 so0k <vincent.drl@gmail.com> 1520175716 +0800	rebase -i (finish): refs/heads/master onto e3f490bf2cc020c8586d95699b8f82f873ec3968
+95e9e9bc9ecc78cf5a72de44ecced89e449e2a73 ebd0cb15b6f07ff48663640e1c587fd696bad660 so0k <vincent.drl@gmail.com> 1520175925 +0800	commit: Test with modules
