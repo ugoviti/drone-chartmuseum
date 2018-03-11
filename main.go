@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -49,6 +49,12 @@ func initApp() *cli.App {
 			Usage:  "Current commit id (`COMMIT_SHA`)",
 			EnvVar: "PLUGIN_CURRENT_COMMIT,CURRENT_COMMIT",
 		},
+		cli.StringFlag{
+			Name:   "log-level",
+			Value:  "error",
+			Usage:  "Log level (panic, fatal, error, warn, info, or debug)",
+			EnvVar: "PLUGIN_LOG_LEVEL,LOG_LEVEL",
+		},
 	}
 
 	app.Action = cli.ActionFunc(defaultAction)
@@ -58,6 +64,13 @@ func initApp() *cli.App {
 }
 
 func defaultAction(c *cli.Context) error {
+	logLevelString := c.String("log-level")
+	logLevel, err := log.ParseLevel(logLevelString)
+	if err != nil {
+		return err
+	}
+	log.SetLevel(logLevel)
+
 	plugin := Plugin{
 		Config: &Config{
 			RepoURL:          c.String("repo-url"),

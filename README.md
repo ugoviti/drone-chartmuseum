@@ -1,71 +1,58 @@
 # Drone plugin for ChartMuseum
+[![Drone Status](https://drone.honestbee.com/api/badges/honestbee/drone-chartmuseum/status.svg?branch=develop)](https://drone.honestbee.com/honestbee/drone-chartmuseum)
+[![Docker Repository on Quay](https://quay.io/repository/honestbee/drone-chartmuseum/status "Docker Repository on Quay")](https://quay.io/repository/honestbee/drone-chartmuseum)
+[![Maintainability](https://api.codeclimate.com/v1/badges/3667089f0bcc8c0f8735/maintainability)](https://codeclimate.com/github/honestbee/drone-chartmuseum/maintainability)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/3667089f0bcc8c0f8735/test_coverage)](https://codeclimate.com/github/honestbee/drone-chartmuseum/test_coverage)
 
-Drone plugin to package and upload Helm charts to ChartMuseum
+Drone plugin to package and upload Helm charts to [ChartMuseum](https://github.com/kubernetes-helm/chartmuseum)
 
-Supported storage services:
+When managing Charts for your organisation, you may either choose to put Chart definitions within each project or centralised in a `helm-charts` repository. The official public-charts repo is an example of the latter.
 
-- AWS S3
+This plugin supports both approaches as well as the ability to detect and process only changes as part of a git repository.
 
-When managing Charts for your organisation, you may either choose to put Chart definitions within each project or centralised in a `helm-charts` repository.
+## Usage Examples
 
-Keeping Charts in a central repository allows a more flexible definition of how each project is deloyed and a full decoupling of the projects (similar to the central public-charts repo)
+- Process all charts from root of repository
 
-This plugin provides a Drone build step to package and update the Helm Repository for centralised charts repository.
+  Package all charts under `chart_dir` and upload to Repository server.
 
-In this case, we are using ChartMuseum for our centralised charts repository.
+  ```YAML
+  pipeline:
+    chartmuseum-all:
+      image: quay.io/honestbee/drone-chartmuseum
+      repo_url: http://helm-charts.example.com
+      when:
+        branch: [master]
+  ```
 
-You can read [here](https://github.com/kubernetes-helm/chartmuseum) for more details about ChartMuseum
+- Process only changed charts
 
-## Usage
+  Detect changed files between `previous_commit` and `current_commit`, only package and upload modified helm charts. Ignores modifications if they match `.helmignore` rules.
 
-Drone Usage:
+  ```YAML
+  pipeline:
+    chartmuseum-diff:
+      image: quay.io/honestbee/drone-chartmuseum
+      repo_url: http://helm-charts.example.com
+      previous_commit: ${DRONE_PREV_COMMIT_SHA}
+      current_commit: ${DRONE_COMMIT_SHA}
+      when:
+        branch: [master]
+  ```
 
-- `diff` mode:
+- Process only a specific chart. Can be combined with commit SHA to only process if chart is modified. (also uses `.helmignore`)
 
-In this mode, the plugin will retrieve the changed files between `previous_commit` and `current_commit`, and only create helm charts & upload to server for those.
+  ```YAML
+  pipeline:
+    chartmuseum-single:
+      image: quay.io/honestbee/drone-chartmuseum
+      repo_url: http://helm-charts.example.com
+      chart_path: nginx
+      when:
+        branch: [master]
+  ```
 
-```YAML
-pipeline:
-  chartmuseum-diff:
-    image: quay.io/honestbee/drone-chartmuseum
-    repo_url: http://helm-charts.example.com
-    previous_commit: ${DRONE_PREV_COMMIT_SHA}
-    current_commit: ${DRONE_COMMIT_SHA}
-    when:
-      branch: [master]
-
-```
-
-- `all` mode:
-
-All helm charts under `chart_dir` would be packaged and upload to server.
-
-```YAML
-pipeline:
-  chartmuseum-all:
-    image: quay.io/honestbee/drone-chartmuseum
-    repo_url: http://helm-charts.example.com
-    when:
-      branch: [master]
-
-```
-
-- `single` mode:
-
-Only specific chart defined by `chart_path` would be taken care of.
-
-```YAML
-pipeline:
-  chartmuseum-single:
-    image: quay.io/honestbee/drone-chartmuseum
-    repo_url: http://helm-charts.example.com
-    chart_path: nginx
-    when:
-      branch: [master]
-
-```
-
-CLI Options:
+## Full utilisation details
 
 ```bash
 NAME:
@@ -81,14 +68,15 @@ COMMANDS:
      help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --repo-url value              chartmuseum server endpoint [$PLUGIN_REPO_URL, $ REPO_URL]
-   --chart-path value            chart path (required if mode is single) [$PLUGIN_CHART_PATH, $ CHART_PATH]
-   --chart-dir value             chart directory (required if mode is diff or all) (default: "./") [$PLUGIN_CHART_DIR, $ CHART_DIR]
-   --save-dir value              directory to save chart packages (default: "uploads/") [$PLUGIN_SAVE_DIR, $ SAVE_DIR]
-   --previous-commit COMMIT_SHA  previous commit id (COMMIT_SHA, required if mode is diff) [$PLUGIN_PREVIOUS_COMMIT, $ PREVIOUS_COMMIT]
-   --current-commit COMMIT_SHA   current commit id (COMMIT_SHA, required if mode is diff) [$PLUGIN_CURRENT_COMMIT, $ CURRENT_COMMIT]
-   --help, -h                    show help
-   --version, -v                 print the version
+   --repo-url value, -u value                   ChartMuseum API base URL [$PLUGIN_REPO_URL, $REPO_URL]
+   --chart-path value, -i value                 Path to chart, relative to charts-dir [$PLUGIN_CHART_PATH, $CHART_PATH]
+   --charts-dir value, -d value                 chart directory (default: "./") [$PLUGIN_CHARTS_DIR, $CHARTS_DIR]
+   --save-dir value, -o value                   Directory to save chart packages (default: "uploads/") [$PLUGIN_SAVE_DIR, $SAVE_DIR]
+   --previous-commit COMMIT_SHA, -p COMMIT_SHA  Previous commit id (COMMIT_SHA) [$PLUGIN_PREVIOUS_COMMIT, $PREVIOUS_COMMIT]
+   --current-commit COMMIT_SHA, -c COMMIT_SHA   Current commit id (COMMIT_SHA) [$PLUGIN_CURRENT_COMMIT, $CURRENT_COMMIT]
+   --log-level value                            Log level (panic, fatal, error, warn, info, or debug) (default: "error") [$PLUGIN_LOG_LEVEL, $LOG_LEVEL]
+   --help, -h                                   show help
+   --version, -v                                print the version
 ```
 
 ```bash
@@ -99,6 +87,16 @@ docker run --rm \
   quay.io/honestbee/drone-chartmuseum
 ```
 
+## Unit Tests
+
+Unit tests support log level also, though you may need to clean cache when changing log level.
+
+```bash
+go clean -cache
+LOG_LEVEL=debug go test -v ./...
+```
+
 ## To Do
 
 - Support http basic authentication
+- Support chart dependencies

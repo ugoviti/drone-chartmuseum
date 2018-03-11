@@ -1,5 +1,5 @@
 # -- Go Builder Image --
-FROM golang:1.9-alpine AS builder
+FROM golang:1.10-alpine AS builder
 
 ENV DEP_VERSION=0.4.1
 
@@ -14,7 +14,7 @@ RUN set -ex \
     && go build -v -o "/drone-chartmuseum"
 
 # -- drone-chartmuseum Image --
-FROM alpine:3.6
+FROM alpine:3.7
 RUN set -ex \
     && apk add --no-cache bash ca-certificates git
 

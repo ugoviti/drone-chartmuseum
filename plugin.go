@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +11,7 @@ import (
 	cm "github.com/honestbee/drone-chartmuseum/pkg/cmclient"
 	"github.com/honestbee/drone-chartmuseum/pkg/util"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/ignore"
 )
@@ -103,12 +103,12 @@ func (p *Plugin) exec() error {
 	for _, chart := range charts {
 		response, err := p.packageAndUpload(ctx, chart)
 		if err != nil {
-			fmt.Printf("Ignoring error while processing %q: %+v\n", chart, err)
+			log.Debugf("Ignoring error while processing %q: %+v", chart, err)
 			continue
 		} else if response.Saved {
-			fmt.Printf("Succesfully Uploaded %q\n", chart)
+			log.Infof("Succesfully Uploaded %q", chart)
 		} else {
-			fmt.Printf("Unexpected ChartMuseum response (Message = %q)\n", response.Message)
+			log.Warnf("Unexpected ChartMuseum response (Message = %q)", response.Message)
 		}
 	}
 
@@ -132,7 +132,7 @@ func (p *Plugin) packageAndUpload(ctx context.Context, chart string) (*cm.Respon
 		return nil, errors.Wrapf(err, "Error while opening generated Chart package: %q", chartPackage)
 	}
 
-	log.Printf("Uploading Chart %v ...\n", chartPackage)
+	log.Printf("Uploading Chart %v ...", chartPackage)
 	return p.Client.ChartService.UploadChart(ctx, f)
 }
 
@@ -145,12 +145,12 @@ func (p *Plugin) discoverCharts() (charts []string, err error) {
 	if p.Config.CurrentCommitID != "" {
 		modifiedCharts, err := p.findModifiedCharts()
 		if err != nil {
-			return nil, errors.Wrapf(err, "Could not find modified Charts")
+			return []string{}, errors.Wrapf(err, "Could not find modified Charts")
 		}
 		if p.Config.ChartPath != "" {
 			if _, modified := modifiedCharts[p.fullChartPath]; !modified {
-				fmt.Printf("chart: %q wasn't modified.. nothing to do", p.fullChartPath)
-				return nil, nil
+				log.Infof("chart: %q wasn't modified.. nothing to do", p.fullChartPath)
+				return []string{}, nil
 			}
 		} else {
 			charts = util.Keys(modifiedCharts)
@@ -163,12 +163,12 @@ func (p *Plugin) discoverCharts() (charts []string, err error) {
 
 // findAllCharts recursively finds all charts within the configured charts-dir
 func (p *Plugin) findAllCharts() (charts []string, err error) {
-	fmt.Printf("Finding all charts...\n")
+	log.Debugf("Finding all charts...")
 	walk := func(path string, stat os.FileInfo, err error) error {
 		if stat != nil && stat.IsDir() {
-			fmt.Printf("testing %s\n", path)
+			log.Debugf("testing %s", path)
 			if ok, _ := chartutil.IsChartDir(path); ok {
-				fmt.Println("\tFound chart! moving on ...")
+				log.Debugf("\tFound chart! moving on ...")
 				charts = append(charts, path)
 				return filepath.SkipDir
 			}
@@ -181,14 +181,14 @@ func (p *Plugin) findAllCharts() (charts []string, err error) {
 
 // findModifiedCharts returns a map of all modified Charts filtered by .helmignore
 func (p *Plugin) findModifiedCharts() (map[string]bool, error) {
-	fmt.Printf("Getting diff between %v and %v ...\n", p.Config.PreviousCommitID, p.Config.CurrentCommitID)
+	log.Infof("Getting diff between %v and %v ...", p.Config.PreviousCommitID, p.Config.CurrentCommitID)
 	lookupCache := make(map[string]*Chart)
 	modifiedCharts := make(map[string]bool)
 	files, err := p.Commit.GetFilesChangedSinceCommit(p.Config.PreviousCommitID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error while getting files between commit: %q and %q", p.Config.PreviousCommitID, p.Config.CurrentCommitID)
 	}
-	//fmt.Printf("%#v\n", files)
+	//log.Debugf("%#v", files)
 	for _, file := range files {
 		//ignore blank files (seems GetFilesChangedSinceCommit always returns an empty last line)
 		if file == "" {
@@ -197,7 +197,7 @@ func (p *Plugin) findModifiedCharts() (map[string]bool, error) {
 		fullPath := filepath.Join(p.Config.ChartsDir, file)
 		fi, err := os.Stat(fullPath)
 		if err != nil {
-			fmt.Printf("\tIgnoring modified file %q due to error: %v\n", file, err)
+			log.Debugf("\tIgnoring modified file %q due to error: %v", file, err)
 			continue // with next modified file
 		}
 		dirName := fullPath
@@ -206,19 +206,19 @@ func (p *Plugin) findModifiedCharts() (map[string]bool, error) {
 		}
 		c, err := getChart(dirName, p.Config.ChartsDir, lookupCache)
 		if err != nil {
-			fmt.Printf("\tIgnoring modified file %q: %v\n", file, err)
+			log.Debugf("\tIgnoring modified file %q: %v", file, err)
 			continue // with next modified file
 		}
 
-		fmt.Printf("\tfile %q belongs to %q\n", file, c.Path)
+		log.Debugf("\tfile %q belongs to %q", file, c.Path)
 
 		// flag chart modified if modified file not helmignored
 		ignored, err := p.testIgnored(file, c)
 		if err != nil {
-			fmt.Println(err)
+			return nil, errors.Wrapf(err, "Failed to test if q% is ignored", file)
 		}
 		if !ignored {
-			fmt.Printf("\t\tfile %q not ignored!\n", file)
+			log.Debugf("\t\tfile %q not ignored!", file)
 			modifiedCharts[c.Path] = true
 		}
 	}
@@ -229,7 +229,7 @@ func (p *Plugin) testIgnored(file string, c *Chart) (bool, error) {
 	path := p.Config.ChartsDir
 	// use filepath.Separator ...
 	for _, pathSegment := range strings.Split(file, "/") {
-		fmt.Printf("\t\t\tpath: %q, pathSegment: %q\n", path, pathSegment)
+		log.Debugf("\t\t\tpath: %q, pathSegment: %q", path, pathSegment)
 		path = path + "/" + pathSegment
 
 		fi, err := os.Stat(path)
@@ -238,7 +238,7 @@ func (p *Plugin) testIgnored(file string, c *Chart) (bool, error) {
 		}
 
 		if c.Rules.Ignore(path, fi) {
-			fmt.Printf("\t\t\tfile %q is ignored!\n", file)
+			log.Debugf("\t\t\tfile %q is ignored!", file)
 			return true, nil
 		}
 	}
@@ -248,15 +248,15 @@ func (p *Plugin) testIgnored(file string, c *Chart) (bool, error) {
 // getChart recursively walks up the file tree to find the chart a directory belongs to
 // Bug(vincent) this expects chartsDir to be valid prefix of filepath (both relative or absolute?)
 func getChart(dirName string, chartsDir string, cache map[string]*Chart) (*Chart, error) {
-	//fmt.Printf("\t\ttesting %q ...\n", dirName)
+	//log.Debugf("\t\ttesting %q ...", dirName)
 	if cachedChart, ok := cache[dirName]; ok {
-		fmt.Printf("\t\tCache hit %q!\n", cachedChart.Path)
+		log.Debugf("\t\tCache hit %q!", cachedChart.Path)
 		return cachedChart, nil
 	}
 
 	c := &Chart{}
 	if ok, _ := chartutil.IsChartDir(dirName); ok {
-		fmt.Printf("\t\tChart found %q\n", dirName)
+		log.Debugf("\t\tChart found %q", dirName)
 		c.Path = dirName
 		c.Rules = ignore.Empty()
 		err := parseHelmIgnoreRules(c)

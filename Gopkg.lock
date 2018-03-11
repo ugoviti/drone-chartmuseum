@@ -63,22 +63,49 @@
   revision = "88e56e02bea1c203c99222c365fa52a69996ccac"
 
 [[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
+
+[[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "d682213848ed68c0a260ca37d6dd5ace8423f5ba"
+  version = "v1.0.4"
+
+[[projects]]
   name = "github.com/urfave/cli"
   packages = ["."]
   revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
   version = "v1.20.0"
 
 [[projects]]
-  branch = "v2"
+  branch = "master"
+  name = "golang.org/x/crypto"
+  packages = ["ssh/terminal"]
+  revision = "c7dcf104e3a7a1417abc0230cb0d5240d764159d"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/sys"
+  packages = [
+    "unix",
+    "windows"
+  ]
+  revision = "7dca6fe1f43775aa6d1334576870ff63f978f539"
+
+[[projects]]
   name = "gopkg.in/yaml.v2"
   packages = ["."]
-  revision = "d670f9405373e636a5a2765eea47fac0c9bc91a4"
+  revision = "7f97868eec74b32b0982dd158a51a446d1da7eb5"
+  version = "v2.1.1"
 
 [[projects]]
   branch = "master"
   name = "k8s.io/apimachinery"
   packages = ["pkg/version"]
-  revision = "cced8e64b6ca92a8b6afcbfea3353ca016694a45"
+  revision = "e9ff529c66f83aeac6dff90f11ea0c5b7c4d626a"
 
 [[projects]]
   name = "k8s.io/helm"
@@ -90,12 +117,12 @@
     "pkg/sympath",
     "pkg/version"
   ]
-  revision = "6af75a8fd72e2aa18a2b278cfe5c7a1c5feca7f2"
-  version = "v2.8.1"
+  revision = "a80231648a1473929271764b920a8e346f6de844"
+  version = "v2.8.2"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "93245600c5a3f6b8b165ebfd774df0574ef78b63f04bf3a18f5febc52684fed4"
+  inputs-digest = "ea9781a32543a3e30971378b1060be25cbfed00fc2faa47c58af84d38f376ac3"
   solver-name = "gps-cdcl"
   solver-version = 1

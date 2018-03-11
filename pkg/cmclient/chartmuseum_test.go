@@ -23,7 +23,7 @@ func setup() (client *Client, mux *http.ServeMux, serverURL string, teardown fun
 	// server is a test HTTP server used to provide mock API responses.
 	server := httptest.NewServer(apiHandler)
 
-	// client is the GitHub client being tested and is
+	// client is the ChartMuseum client being tested and is
 	// configured to use test server.
 	client, _ = NewClient(server.URL+"/", nil)
 	return client, mux, server.URL, server.Close
