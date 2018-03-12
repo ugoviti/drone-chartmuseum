@@ -1,5 +1,5 @@
 # Drone plugin for ChartMuseum
-[![Drone Status](https://drone.honestbee.com/api/badges/honestbee/drone-chartmuseum/status.svg?branch=develop)](https://drone.honestbee.com/honestbee/drone-chartmuseum)
+
 [![Docker Repository on Quay](https://quay.io/repository/honestbee/drone-chartmuseum/status "Docker Repository on Quay")](https://quay.io/repository/honestbee/drone-chartmuseum)
 [![Maintainability](https://api.codeclimate.com/v1/badges/3667089f0bcc8c0f8735/maintainability)](https://codeclimate.com/github/honestbee/drone-chartmuseum/maintainability)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/3667089f0bcc8c0f8735/test_coverage)](https://codeclimate.com/github/honestbee/drone-chartmuseum/test_coverage)
