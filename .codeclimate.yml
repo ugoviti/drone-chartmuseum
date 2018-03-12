@@ -9,3 +9,4 @@ engines:
 exclude_paths:
   - vendor/
   - testdata/
+  - "**/*_test.go"
