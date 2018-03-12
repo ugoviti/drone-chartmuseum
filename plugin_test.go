@@ -123,6 +123,7 @@ func Test_ValidateConfig(t *testing.T) {
 			name: "Invalid charts-dir",
 			p: &Plugin{
 				Config: &Config{
+					RepoURL:   "http://charts.mycompany.com/",
 					ChartsDir: "foo",
 				},
 			},
@@ -132,6 +133,7 @@ func Test_ValidateConfig(t *testing.T) {
 			name: "Invalid chart-path",
 			p: &Plugin{
 				Config: &Config{
+					RepoURL:   "http://charts.mycompany.com/",
 					ChartsDir: testChartsDir,
 					ChartPath: "foo",
 				},
@@ -142,6 +144,7 @@ func Test_ValidateConfig(t *testing.T) {
 			name: "Invalid git commit",
 			p: &Plugin{
 				Config: &Config{
+					RepoURL:         "http://charts.mycompany.com/",
 					ChartsDir:       clonedPath,
 					CurrentCommitID: "foo",
 				},
