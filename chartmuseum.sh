@@ -9,10 +9,10 @@ echo $CHARTS
 
 echo "[Using repo ${PLUGIN_HELM_REPO}]"
 helm repo add chartmuseum ${PLUGIN_HELM_REPO}
-helm dependency update
 
 for CHART in ${CHARTS}; do
     echo "Pushing ${CHART}"
+    # helm dependency update
     helm push --force ${CHART}/ chartmuseum
 done
 
