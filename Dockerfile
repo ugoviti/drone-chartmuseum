@@ -12,6 +12,8 @@ RUN apk add --no-cache bash gawk sed grep bc coreutils git curl openssl jq \
     && mv /tmp/linux-amd64/helm /bin/helm \
     && rm -rf /tmp
 
-RUN helm init --client-only && helm plugin install https://github.com/chartmuseum/helm-push
+RUN helm init --client-only \
+    && helm plugin install https://github.com/chartmuseum/helm-push \
+    && mkdir /tmp
 
-ENTRYPOINT /usr/local/bin/chartmuseum.sh
+CMD [/usr/local/bin/chartmuseum.sh]
