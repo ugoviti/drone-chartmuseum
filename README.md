@@ -14,3 +14,7 @@ pipeline:
     when:
       branch: [master]
 ```
+
+## Pushing Duplicate Versions
+
+Unless your ChartMuseum install is configured with `ALLOW_OVERWRITE=true`, pushing charts with existing versions will fail. To avoid this, please make sure to always bump your chart version when pushing canges.

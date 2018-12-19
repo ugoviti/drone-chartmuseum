@@ -23,5 +23,5 @@ for CHART in ${CHARTS}; do
     fi
 
     echo "Pushing ${CHART}"
-    helm push --force ${CHART}/ chartmuseum
+    helm push ${CHART}/ chartmuseum
 done
