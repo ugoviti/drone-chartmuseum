@@ -16,4 +16,4 @@ RUN helm init --client-only \
     && helm plugin install https://github.com/chartmuseum/helm-push \
     && mkdir /tmp
 
-CMD [/usr/local/bin/chartmuseum.sh]
+ENTRYPOINT /usr/local/bin/chartmuseum.sh
