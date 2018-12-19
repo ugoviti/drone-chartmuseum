@@ -3,6 +3,7 @@
 set -e -o pipefail
 
 echo "[Finding changes]"
+echo "Note: this will not work correctly if a build was restarted - in such cases please push the affected chart manually."
 CHARTS=$(git diff $DRONE_PREV_COMMIT_SHA $DRONE_COMMIT_SHA --name-only | awk -F '/' '{ print $1 }' | uniq)
 echo "$CHARTS"
 
