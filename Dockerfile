@@ -1,19 +1,12 @@
-FROM alpine:3.6
+FROM alpine:3.12
 
-ENV VERSION v2.7.2
-ENV FILENAME helm-${VERSION}-linux-amd64.tar.gz
+ENV HELM_VERSION=3.3.1
 
-COPY chartmuseum.sh /usr/local/bin/chartmuseum.sh
+RUN apk add --no-cache bash gawk sed grep bc coreutils git curl openssl jq tar && \
+    curl -fSL --connect-timeout 10 "https://get.helm.sh/helm-v$HELM_VERSION-linux-amd64.tar.gz" | tar zxv --wildcards --strip 1 -C "/usr/local/bin" "*/helm" && \
+    chmod 755 /usr/local/bin/helm && \
+    helm plugin install https://github.com/chartmuseum/helm-push
 
-RUN apk add --no-cache bash gawk sed grep bc coreutils git curl openssl jq \
-    && chmod +x /usr/local/bin/chartmuseum.sh \
-    && curl -sLo /tmp/${FILENAME} http://storage.googleapis.com/kubernetes-helm/${FILENAME} \
-    && tar -zxvf /tmp/${FILENAME} -C /tmp \
-    && mv /tmp/linux-amd64/helm /bin/helm \
-    && rm -rf /tmp
-
-RUN helm init --client-only \
-    && helm plugin install https://github.com/chartmuseum/helm-push \
-    && mkdir /tmp
-
+ADD chartmuseum.sh /usr/local/bin/chartmuseum.sh
+    
 ENTRYPOINT /usr/local/bin/chartmuseum.sh
